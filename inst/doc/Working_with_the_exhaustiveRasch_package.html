@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Christian Grebe and Mirko Schürmann" />
+
+<meta name="date" content="2024-12-16" />
+
+<title>Working with the exhaustiveRasch package</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Working with the exhaustiveRasch
+package</h1>
+<h3 class="subtitle">for package version 0.3.7</h3>
+<h4 class="author">Christian Grebe and Mirko Schürmann</h4>
+<h4 class="date">2024-12-16</h4>
+
+
+
+<hr />
+<div id="introduction" class="section level2">
+<h2>1. Introduction</h2>
+<p>The exhaustiveRasch package provides tools for exhaustive testing of
+Rasch models to identify measurement quality and model fit for different
+item combinations of a test or scale. It automates the process of
+testing various subsets of items under different Rasch model
+assumptions, helping researchers and psychometricians to:</p>
+<ul>
+<li><p>identify item subsets that fit the Rasch model,</p></li>
+<li><p>ensure unidimensionality and local independence and</p></li>
+<li><p>customize analyses with flexible options.</p></li>
+</ul>
+<p>The Rasch model is a foundational framework in Item Response Theory
+(IRT), offering a probabilistic approach to measure latent traits. This
+vignette briefly explains the theory behind Rasch models, describes the
+problem the package solves, and demonstrates how to use the package
+effectively.</p>
+<p>The selection of items from a larger item pool is a challenge in the
+context of developing Rasch valid instruments in practice. For example,
+items can be combined in many different ways to form a scale in order to
+fulfill the criteria of a Rasch scale. A serial and manual procedure to
+exclude items individually can lead to early exclusion of potentially
+suitable item combinations. Additionally, in order to derive an
+appropriate short form from an existing instrument, theoretical
+considerations are usually required in order to take into account the
+respective content domains or facets of the long form.</p>
+<p>Analyzing Rasch models often requires extensive testing to identify
+the best-fitting subsets of items, to ensure that the model assumptions
+like unidimensionality and local independence are met and to account for
+Differential Item Functioning (DIF). Manual testing of all item subsets
+is computationally expensive. <em>exhaustiveRasch</em> solves this by
+automating item subset generation, conducting rigorous model fit tests
+und summarizing the results.The package <em>exhaustiveRasch</em>
+conducts an exhaustive search over all possible item combinations. It
+identifies item combinations that fulfil the item and model fit criteria
+as defined by the user. Theoretically derived item combinations can be
+specified beforehand by defining rules for inclusion and exclusion of
+item (combinations).</p>
+<p>(Semi-) automatic item selection using Rasch principles is also
+addressed by the <em>autorasch</em> package (Wijayanto et al. 2023). In
+contrast to <em>autorasch,</em> this package aims to identify exactly
+one optimal model. <em>exhaustiveRasch</em>, on the other hand, tests
+all possible item combinations (previously reduced on a theoretical
+basis) against the criteria specified by the user using common model
+tests for Rasch models. Ultimately, it does not return the one optimal
+model, but all item combinations that fulfil the specified criteria.</p>
+<p>The package supports 1PL Rasch models:</p>
+<ol style="list-style-type: decimal">
+<li>The <strong>Dichotomous Rasch Model</strong> applies to binary
+responses (e.g., correct/incorrect answers). The probability of a
+correct response is:</li>
+</ol>
+<p><span class="math display">\[
+P(X_{ij} = 1|\theta_j, \beta_i) = \frac{\exp(\theta_j - \beta_i)}{1 +
+\exp(\theta_j - \beta_i)}
+\]</span></p>
+<p>where: - <span class="math inline">\(\theta_j\)</span>: Person’s
+latent trait. - <span class="math inline">\(\beta_i\)</span>: Item
+difficulty.</p>
+<ol start="2" style="list-style-type: decimal">
+<li>The <strong>Partial Credit Model (PCM)</strong> extends the Rasch
+model to polytomous responses (e.g., Likert scales). The probability of
+a response in category <span class="math inline">\(k\)</span> is:</li>
+</ol>
+<p><span class="math display">\[
+P(X_{ij} = k|\theta_j, \beta_{ih}) = \frac{\exp\left(\sum_{h=0}^k
+(\theta_j - \beta_{ih})\right)}{\sum_{m=0}^{m_i} \exp\left(\sum_{h=0}^m
+(\theta_j - \beta_{ih})\right)}
+\]</span></p>
+<p>where: - <span class="math inline">\(\beta_{ih}\)</span>: The
+threshold for category <span class="math inline">\(h\)</span>.</p>
+<ol start="3" style="list-style-type: decimal">
+<li>The <strong>Rating Scale Model</strong> is a special PCM case where
+thresholds are uniform across items, simplifying parameter
+estimation.</li>
+</ol>
+<p>In <em>exhaustiveRasch</em>, functions of the packages
+<strong><em>eRm</em></strong> (Mair &amp; Hatzinger 2007),
+<strong><em>psychotools</em></strong> (Zeileis et al. 2023) or
+<strong><em>pairwise</em></strong> (Heine &amp; Tarnei 2015) can be used
+for parameter estimation and testing the model assumptions. For models
+estimated with <em>psychotools</em>, we provide own functions for the
+model tests in <em>exhaustiveRasch</em>, as this package does not
+provide them.</p>
+</div>
+<div id="package-overview" class="section level2">
+<h2>2. Package overview</h2>
+<p>The package consists of two main parts (functions). The first is to
+define rules for possible item combinations of the scale which should be
+constructed and it is saved in a list (<em>rules_object</em>). This is
+used in a second step to calculate all possible item combinations by the
+use of the function <em>apply_combo_rules</em> and is saved in a list
+object. For example, with the function <em>exhaustice_test</em> all the
+identified item combinations can be tested to identify all item
+combinations as candidate models which pass predefined test and criteria
+for Rasch measurement.</p>
+<div id="pre-define-item-combinations-apply_combo_rules" class="section level3">
+<h3>2.1 Pre-define item combinations: <em>apply_combo_rules()</em></h3>
+<p>You can use the <em>apply_combo_rules()</em> function to define rules
+for item combinations to be recongnized or permitted in the candidate
+models. The function needs the <em>full</em> argument, a vector of
+numeric values for the item indices of the full item set to be
+processed. For example, if the function should be applied to a full set
+of 10 items, the <em>full</em> argument must be set to 1:10.</p>
+<p>You can define the length of the scales by setting the
+<em>combo_length</em> argument. This argument can be a single numeric
+value or a vector of numeric values. For example, with
+<em>combo_length=6</em> only combinations of 6 items are selected. or
+with <em>combo_length=4:6</em> only combinations with at least 4 and not
+more than 6 items are selected. with <em>combo_length c(4,7,8)</em> only
+combinations with 4,7 and 8 items are selected. If not specified, all
+scale length between 4 and the maximum number of items in full will be
+used.</p>
+<p>There are four types of rules that can be defined:</p>
+<ul>
+<li><p>maximum rule: a maximum of x out of y items,</p></li>
+<li><p>minimum rule: at least of x out of y items,</p></li>
+<li><p>forbidden rule: item combinations that are not permitted
+and</p></li>
+<li><p>forced: items will be present on any of the selected item
+combinations.</p></li>
+</ul>
+<p>The way to define maximum, minimum and forbidden rules is to use a
+list of lists (one list for each rule). For <strong><em>minimum and
+maximum rules</em></strong> each list has to contain three values:</p>
+<ul>
+<li><p>a character string (“min” or “max”) that defines the type of the
+rule,</p></li>
+<li><p>a numeric value that defines the minimum/ maximum value (e.g. 2
+for at least/ at most 2 items) and</p></li>
+<li><p>a numeric vector with the indices of items to apply the rule to
+<em>list(“min”, 1, 1:6)</em> defines a rule for selecting at least one
+of the items 1-6.</p></li>
+</ul>
+<p>For example, <em>list(“max”, 3, 1:6)</em> defines a rule for
+selecting at most three of the items 1-6.</p>
+<p>A list for a <strong><em>forbidden rule</em></strong> contains only
+two values:</p>
+<ul>
+<li><p>the character string “forbidden” that defines the type of the
+rule and</p></li>
+<li><p>a numeric vector with the indices of items to apply the rule
+to.</p></li>
+</ul>
+<p>So the <em>list(“forbidden”, c(8,10))</em> defines a rule that
+prevents selecting both of the items 8 and 10 for a candidate model. You
+have to combine the lists with the minimum, maximum and forbidden rules
+to one list of lists that contains all the rules to be applied, for
+example:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>rules_object <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>rules_object[[<span class="dv">1</span>]] <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;min&quot;</span>, <span class="dv">1</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>rules_object[[<span class="dv">2</span>]] <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;max&quot;</span>, <span class="dv">3</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a>rules_object[[<span class="dv">3</span>]] <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;forbidden&quot;</span>, <span class="fu">c</span>(<span class="dv">8</span>,<span class="dv">10</span>)) </span></code></pre></div>
+<p>These three rules lead to a selection of candidate models with at
+least one but at most three of the first six items, while in none of the
+selected item combinations items 8 and 10 will both be present.</p>
+<p>The <strong><em>forced rule</em></strong> is not defined in that
+lists of lists. To force items to be selected for any candidate model,
+use can use the <em>forced_items</em> argument of the function. Provide
+the item indices(s) as a numeric value or a vector of numeric values.
+<em>forced_items = c(4,7)</em> will ensure that items 4 and 7 will be
+present in all of the candidate models.</p>
+</div>
+<div id="test-model-fit-the-exhaustive_tests-function" class="section level3">
+<h3>2.2 Test model fit: The exhaustive_tests() function</h3>
+<p>Provide the data to analyze as a data.frame using the <em>dset</em>
+argument.</p>
+<p>At first, you have to decide which item combinations for candidate
+models you want to test. You can choose from three approaches:</p>
+<ul>
+<li><p><strong>Approach A) Test all item combinations with given scale
+lengths.</strong> Use this approach if you don’t have any theoretical
+considerations in mind that should be addressed by defining rules using
+the <em>apply_combo_rules</em> function. All item combinations will be
+tested that meet the number of items provided in the
+<em>scale_length</em> argument. The <em>scale_length</em> argument
+expects a numeric vector, e.g. <em>c(4:8)</em> for any item combinations
+with at least 4 and at most 8 items (see the examples for the
+<em>combo_length</em> argument of the <em>apply_combo_rules</em>
+function above). If you do not set the <em>scale_length</em> argument
+and do not provide pre-selected item combinations using the
+<em>combos</em> argument (approaches B and C), all possible item
+combinations will be tested with a minimum scale length of 4 to the
+maximum scale length (number of items in your data frame).</p></li>
+<li><p><strong>Approach B) Use pre-defined item combinations from the
+result of a previous call of the <em>apply_combo_rules()</em></strong>
+function (see above). Use the results object from this call as the
+<em>combos</em> argument.</p></li>
+<li><p><strong>Approach C) Use results of a previous call of the
+<em>exhaustive_tests</em> function.</strong> You can use the item
+combinations that passed a previous call for further tests. This is
+useful, if the previous call led to a greater number of candidate models
+that you want to reduce further. For example, you could use tests in the
+second run that you did not use in the first run. Or you could use
+stricter criteria in the second run (e.g. use stricter values for the
+upper and lower bound of itemfit indices, define a stricter level of
+significance, additionally set criteria for the standardized itemfit
+indices if you only used MSQ-based indices in the first run or use
+another split criterion for Anderson’s LR Test or other external
+variables for the DIF-Tree analysis). Use the item combinations from the
+<em>@passed_combos</em> list of the results objects of the first run for
+this approach.</p></li>
+</ul>
+<p>Second, <strong>specify the type of Rasch models to fit</strong>
+using the <em>modelType</em> argument. For binary data use <em>“RM”</em>
+to fit dichotomous Rasch models. For polytomous data you can choose
+between <em>“PCM”</em> for partial credit models or <em>“RSM”</em> for
+Rating-Scale Rasch models.</p>
+<p>Third, <strong>select the tests for model and item fit</strong> you
+want to use. The tests have to be specified in the <em>tests</em>
+argument as a vector of characters (strings). The tests will be
+conducted in the order you use in the vector. Table 1 shows the
+available tests for the <em>tests</em> argument. These are described in
+more detail in the following.<em>Table 1: overview of the available
+tests</em></p>
+<table>
+<colgroup>
+<col width="5%" />
+<col width="63%" />
+<col width="31%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">test</th>
+<th align="left">description</th>
+<th align="left">default setting</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">all_rawscores</td>
+<td align="left">checks, if all possible rawscores (sums of item scores)
+are empirically respresented in the data</td>
+<td align="left">no arguments</td>
+</tr>
+<tr class="even">
+<td align="left">no_test</td>
+<td align="left">No test is performed, but the returned passed_exRa
+object contains fit models for the provided item combinations</td>
+<td align="left">no arguments</td>
+</tr>
+<tr class="odd">
+<td align="left">test_DIFtree</td>
+<td align="left">tests differential item functioning (DIF) related to
+the specified external variables by using raschtrees; checks, if no
+split is present is the resulting tree.</td>
+<td align="left">no arguments (but DIFvars must be provided)</td>
+</tr>
+<tr class="even">
+<td align="left">test_itemfit</td>
+<td align="left">checks, if the fit- indices (infit, outfit) are within
+the specified range</td>
+<td align="left">MSQ in- and outfits between 0.7 and 1.3 and no
+significant p-values (alpha=0.1, no Bonferroni correction)</td>
+</tr>
+<tr class="odd">
+<td align="left">test_LR</td>
+<td align="left">performs Anderson’s likelihood ratio test with the
+specified split criterion</td>
+<td align="left">median rawscore as split criterion, no significant
+p-values (alpha=0.1, no Bonferroni correction)</td>
+</tr>
+<tr class="even">
+<td align="left">test_mloef</td>
+<td align="left">performs the Martin-Löf test with the specified split
+criterion</td>
+<td align="left">median rawscore as split criterion, no significant
+p-values (alpha=0.1)</td>
+</tr>
+<tr class="odd">
+<td align="left">test_PSI</td>
+<td align="left">checks if the person separation index (PSI) - also
+known as person reliabilty exceeds the given value (between 0 and
+1).</td>
+<td align="left">values above 0.8</td>
+</tr>
+<tr class="even">
+<td align="left">test_personsItems</td>
+<td align="left">checks, if there are item thresholds in the extreme low
+and high range of the latent dimension and/or checks, if the amount of
+item thresholds between neighboring person parameters is above the
+specified percentage</td>
+<td align="left">checks for thresholds in the extreme ranges, but not
+for the amount of thresholds between person parameters</td>
+</tr>
+<tr class="odd">
+<td align="left">test_respca</td>
+<td align="left">performs a principal components analysis on the rasch
+residuals; checks if the eigenvalue of the highest loading contrast is
+below the specified value</td>
+<td align="left">maximum eigenvalue of 1.5</td>
+</tr>
+<tr class="even">
+<td align="left">test_waldtest</td>
+<td align="left">performs a Waldtest with the specified split criterion;
+checks, if all items have p-values below the specified alpha (or local
+alpha, if a Bonferroni correction is used)</td>
+<td align="left">median rawscore as split criterion, no significant
+p-values (alpha=0.1, no Bonferroni correction)</td>
+</tr>
+<tr class="odd">
+<td align="left">threshold_order</td>
+<td align="left">checks, if all threshold locations are ordered (not
+applicable for dichotomous rasch models)</td>
+<td align="left">no arguments</td>
+</tr>
+</tbody>
+</table>
+<div id="test_itemfit" class="section level4">
+<h4>test_itemfit</h4>
+<p>According to the estimation method defined in the est argument, this
+tests checks the itemfit indices using the <em>itemfit()</em> function
+of the eRm package, the <em>pers()</em> function of the
+<em>pairwise</em> package or, for parameters estimated with
+<em>psychotools</em>, the <em>ppar.psy()</em> function that is part of
+<em>exhaustiveRasch</em> . You can define the criteria to use for
+candidate models to be considered as showing acceptable item fit using
+the <em>itemfit_control()</em> function. This function sets standard
+values that can be overridden.</p>
+<ul>
+<li><p>evaluate only infits (set <em>outfits</em> argument FALSE) or
+infits and outfits (set <em>outfits</em> argument TRUE)</p></li>
+<li><p>evaluate only MSQ fits (set <em>msq</em> argument TRUE and
+<em>zstd</em> argument FALSE) or only z-standardized fits (set
+<em>zstd</em> argument TRUE and <em>msq</em> argument FALSE) or both of
+them (set both arguments TRUE).</p></li>
+<li><p>evaluate p-values of the chi-squared tests additionally to the
+fit indices above (set <em>use.pval</em> argument TRUE. The level of
+significance is not to be set in the <em>itemfit_control()</em> function
+but globally in using the <em>alpha</em> argument of the
+<em>exhaustive_tests()</em> function). You can also add a Bonferroni
+adjustment for the p-values (this also has to be set globally for all
+tests in the <em>exhaustive tests()</em> function by setting the
+<em>bonf</em> argument TRUE).</p></li>
+<li><p>use the weighted fit indices instead of the unweighted fit
+indices (set the <em>use.rel</em> argument TRUE in the call to the
+<em>itemfit_control()</em> function. This argument is only available
+when using <em>psychotools</em> or <em>pairwise</em> for parameter
+estimation and will be ignored if using <em>eRm</em>
+estimation.</p></li>
+</ul>
+<p>You can either override any of the standard value set by
+<em>itemfit_control</em> with a call to that function (e.g. using
+<em>control= itemfit_control(outfits=F, zstd=T). This</em> will evaluate
+infits only – MSQ infits as well as z-standardized infits – and will use
+all other arguments with their standard value). Or you can pass
+<em>itemfit_control()</em> arguments directly to the
+<em>exhaustive_tests()</em> function (e.g. use outfits=F as an argument
+in a call to <em>exhaustive_tests()</em>).</p>
+<p>In the literature on Rasch analysis, there are many indications on
+what limits should be applied for the upper and lower limits of the fit
+indices. The most common reference is Linacre (2002), who gives
+recommendations for both MSQ fit indices (see table 2) and standardized
+fit indices (see table 3).</p>
+<p><em>Table 2: MSQ Infit and outfit values and implications for
+measurement (Linacre 2002)</em></p>
+<table>
+<colgroup>
+<col width="7%" />
+<col width="92%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">MSQ</th>
+<th align="left">implication for measurement</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">&gt; 2.0</td>
+<td align="left">Distorts or degrades the measurement system. May be
+caused by only one or two observations.</td>
+</tr>
+<tr class="even">
+<td align="left">1.5 - 2.0</td>
+<td align="left">Unproductive for construction of measurement, but not
+degrading.</td>
+</tr>
+<tr class="odd">
+<td align="left">0.5 - 1.5</td>
+<td align="left">Productive for measurement.</td>
+</tr>
+<tr class="even">
+<td align="left">&lt; 0.5</td>
+<td align="left">Less productive for measurement, but not degrading. May
+produce misleadingly high reliability and separation coefficients.</td>
+</tr>
+</tbody>
+</table>
+<p><em>Table 3: standardised Infit and outfit values and implications
+for measurement (Linacre 2002)</em></p>
+<table>
+<colgroup>
+<col width="11%" />
+<col width="88%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">standardized value</th>
+<th align="left">implication for measurement</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">≥ 3</td>
+<td align="left">Data very unexpected if they fit the model (perfectly),
+so they probably do not. But, with large sample size, substantive misfit
+may be small.</td>
+</tr>
+<tr class="even">
+<td align="left">2.0 - 2.9</td>
+<td align="left">Data noticeably unpredictable.</td>
+</tr>
+<tr class="odd">
+<td align="left">-1.9- 1.9</td>
+<td align="left">Data have reasonable predictability.</td>
+</tr>
+<tr class="even">
+<td align="left">≤ -2</td>
+<td align="left">Data are too predictable. Other ‘dimensions’ may be
+constraining the response patterns.</td>
+</tr>
+</tbody>
+</table>
+<p>Wright et al. (1996) recommend limits of varying stringency depending
+on the purpose of the scale being developed (see table 4). In many
+situations, MSQ fit indices between 0.5 and 1.5 can be considered
+acceptable, but our default value for <em>test_itemfit</em> is the
+stricter range between 0.7 and 1.3 for MSQ fit indices or -1.96 - 1.96
+for standardized fit indices.</p>
+<p>The p-values should be interpreted with caution for large samples, as
+the hypothesis tests are then typically overpowered.</p>
+<p><em>Table 4: reasonable MSQ ranges for infit and outfit (Wright et
+al. 1996)</em></p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">type of test</th>
+<th align="left">range</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">MCQ (high stakes)</td>
+<td align="left">0.8 - 1.2</td>
+</tr>
+<tr class="even">
+<td align="left">MCQ (run of the mill)</td>
+<td align="left">0.7 - 1.3</td>
+</tr>
+<tr class="odd">
+<td align="left">rating scale (survey)</td>
+<td align="left">0.6 - 1.4</td>
+</tr>
+<tr class="even">
+<td align="left">clinical observation</td>
+<td align="left">0.5 - 1.7</td>
+</tr>
+<tr class="odd">
+<td align="left">judged (agreement encouraged)</td>
+<td align="left">0.4 - 1.2</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="test_respca" class="section level4">
+<h4>test_respca</h4>
+<p>This test performs a principal components analysis on the
+standardized Rasch residuals (‘Rasch PCA’) and is a test on the
+unidimensionality assumption of the Rasch model. The criterion to pass
+this test is the maximum loading for a component (contrast) of this PCA,
+as defined in the <em>max_contrast</em> argument.</p>
+</div>
+<div id="test_mloef" class="section level4">
+<h4>test_mloef</h4>
+<p>This test performs Martin-Löf tests using the <em>MLoef()</em>
+function of <em>eRm</em> for parameters estimated using <em>eRm</em> or
+the <em>mloef.psy()</em> function of exhaustiveRasch for psychotools
+parameters. If using <em>pairwise</em> for parameter calculation,
+<em>test</em>_<em>mloef()</em> is not available and will be removed if
+under the tests defined in the <em>tests</em> argument. The default
+split criterion is a split by median. If you want to use another split
+criterion, you can set this using the <em>splitcr_mloef</em> argument.
+Use <em>“mean”</em> for a split by mean. You also can set a custom split
+criterion using a numerical vector with two distinct value to define two
+groups of items (e.g. the even and the odd items). This length of the
+vector has to match the length of the scale. Therefore, this approach is
+only feasible, if all candidate models have the same number of items
+(<em>scale_length</em> argument). If you use <em>psychotools</em> or
+<em>pairwise</em> for parameter estimation, the <em>splitcr_mloef</em>
+argument can also be set to <em>“random”</em> for a random split.
+Candidate models pass this test if the null hypothesis is not rejected.
+The level of significance can be set globally for all tests by using the
+<em>alpha</em> argument.</p>
+</div>
+<div id="test_lr" class="section level4">
+<h4>test_LR</h4>
+<p>This test performs Anderson’s likelihood ratio tests using the
+<em>LRtest()</em> function from eRm, the <em>andersentest.pers()</em>
+function from pairwise, or, for psychotools parameters, the
+<em>LRtest.psy()</em> function from exhaustiveRasch. Just like for the
+<em>test_mloef()</em> function, a median split is the default split
+criterion and a custom split criterion can be used by providing a
+numerical vector with the argument <em>splitcr_LR</em> to define the
+groups. This vector has to match the number of persons in the data
+frame. Unlike in the <em>test_mloef()</em> function, you can define more
+than two groups as custom split criterion, e.g. you can use
+<em>“all.R”</em> as a value for <em>splitcr_LR</em> to define groups
+based on the empirical rawscores. You also can use <em>“mean”</em> as a
+value for <em>splitcr_LR</em> to split by mean. If you use
+<em>pairwise</em> or <em>psychotools</em> for parameter estimation, you
+also can use <em>“random”</em> for a random split. Candidate models pass
+this test if the null hypothesis is not rejected. The level of
+significance can be set globally for all tests by using the
+<em>alpha</em> argument and a Bonferroni correction can be used by
+setting the <em>bonf</em> argument TRUE.</p>
+<p>Note that the default split criterion, the median split, is not
+useful for ordinal models (PCM and RSM), because items are eliminated if
+they do not have the same number of categories in each subgroup. In
+<em>exhaustiveRasch</em>, item combinations are considered as not
+passing the test in this case. The authors of the <em>eRm</em> package
+suggest to use either a random split or a custom (external) split
+criterion in these cases. We recommend using <em>test_LR</em> for PCM
+and RSM models with an external split criterion (to be passed in the
+argument <em>splitcr_LR</em>), as a random split is not very helpful for
+the analysis.</p>
+</div>
+<div id="threshold_order" class="section level4">
+<h4>threshold_order</h4>
+<p>This test checks if the item threshold locations (beta parameters) of
+each item are ordered. This is only relevant for polytomous data
+(<em>modelType</em> “PCM” or “RSM”) and therefore is meaningless for
+binary data (<em>modelType</em> “RM”).</p>
+</div>
+<div id="test_waldtest" class="section level4">
+<h4>test_waldtest</h4>
+<p>This test performs aldlike tests using the <em>Waldtest()</em>
+function of <em>eRm, the pairwise.S() function of pairwise or, for
+psychotools parameters, the waldtest.psy() function of
+exhaustiveRasch</em>. The default split criterion is split by median.
+You can define other split criteria by using the <em>splitcr_wald</em>
+argument, use <em>“mean”</em> to split the individuals by the mean of
+their raw scores. You can also define a custom split criterion by
+providing a numeric vector that assigns every person to one of two
+groups. This vector has to match the number of persons in the
+data.frame. Candidate models pass this test if the null hypothesis is
+not rejected. The level of significance can be set globally for all
+tests by using the <em>alpha</em> argument and a Bonferroni correction
+can be used by setting the <em>bonf</em> argument TRUE.</p>
+<p>Note that the default split criterion, the median split, is not
+useful for ordinal models (PCM and RSM), because items are eliminated if
+they do not have the same number of categories in each subgroup. In
+<em>exhaustiveRasch</em>, item combinations are considered as not
+passing the test in this case. The authors of the eRm package suggest to
+use either a random split or a custom (external) split criterion in
+these cases. We recommend using the Waldtest for PCM and RSM with an
+external split criterion (to be passed in the argument
+<em>splitcr_wald</em>), as a random split is not very helpful for the
+analysis.</p>
+<p>When using <em>pairwise</em> or <em>psychotools</em> as estimation
+method, the parameter <em>icat_wald</em> is available. If this parameter
+is set TRUE, the item category parameters will be used, if set FALSE,
+the item parameters (sigma) are used.</p>
+</div>
+<div id="test_diftree" class="section level4">
+<h4>test_DIFtree</h4>
+<p>This test checks for differential item function using the
+<em>raschtree</em> function of the <em>psychotree</em> package (the
+<em>rstree</em> or <em>pctree</em> function respectively, depending on
+<em>modelType</em>; Strobl et al. 2015, Komboz et al., 2018). You can
+use several external variables at once that can be binary, as well as
+categorical or continuous. Provide the external variables as a
+data.frame using the <em>DIFvars</em> argument. The function builds
+decision trees. Nodes in the tree indicate differential item functioning
+for the split point that defines the actual tree node. See the
+documentation on the function rstree, pctree and rstree in psychotree
+for more details. Candidate models pass this test if the number of tree
+nodes is 1.</p>
+</div>
+<div id="test_personsitems" class="section level4">
+<h4>test_personsItems</h4>
+<p>This test analyses the relationship between the person parameter
+distribution and the item (or: threshold) locations as you would do it
+when manually inspecting a personitem-map or Wright map (for example
+when using the <em>plotPImap()</em> function of the <em>eRm</em>
+package. The analysis implemented in this can check two different
+aspects.</p>
+<p>First, you can use the <em>boolean</em> argument extremes (values
+TRUE or FALSE). This checks if the inspected scale differentiates well
+in the upper as well as in the lower range of the latent dimension. This
+is done by checking whether there is an item or threshold location
+beyond the second highest and second lowest person parameters. Second,
+you can define the minimum proportion of neighboring person parameters
+with an item/threshold location in between by using the
+<em>gap_prop</em> argument. Set this argument to any decimal between 0
+and 1 to define the minimum proportion. If set to 0 this check will be
+ignored. Note that in the case of missing values in your data you will
+probably have many different person parameters. In these cases the use
+of the <em>gap_prop</em> argument is not useful and should be
+avoided.</p>
+</div>
+<div id="test_psi" class="section level4">
+<h4>test_PSI</h4>
+<p>This test checks whether the person separation index also known as
+“person reliability”) is at least equal to the selected value. This
+value must be specified with the <em>PSI</em> argument (default: PSI=
+0.8). For parameters estimated with <em>eRm</em>, <em>test_PSI</em> uses
+the <em>SepRel()</em> function of <em>eRm</em>, for <em>pairwise</em> or
+<em>psychotools</em> parameters, the person separator index value is
+part of the respective person parameter object (from <em>pers()</em> for
+<em>pairwise</em> or from the <em>ppar.psy()</em> function of
+<em>exhaustiveRasch</em> for <em>psychotools</em>).</p>
+</div>
+<div id="all_rawscores" class="section level4">
+<h4>all_rawscores</h4>
+<p>This test checks if all possible raw scores of the inspected scale
+are represented in the data. For example, if the scale consists of 4
+binary outcomes there are 5 possible raw scores when summing up these
+items (raw scores 0 to 4). If at least one of these possible raw score
+does not occur in the data, this test is not passed. Note that the
+passing or failing of this test does not have any meaning for
+considering if the scale is Rasch valid. But if you have a low number of
+possible raw scores, you perhaps want to make sure, that these are all
+represented by the scale. This test is particularly useful for these
+cases, whereas it is too strict for a larger number of possible raw
+scores (especially for ordinal items with a high number of response
+categories) and should be avoided.</p>
+</div>
+<div id="no_test" class="section level4">
+<h4>no_test</h4>
+<p>This test is not a test in the strict sense. It merely estimates the
+model parameters and returns a <em>passed_exRA</em> object including the
+<em>@passed_models</em> slot. In the case of dichotomous RM models,
+however, the remaining item combinations may be reduced if they do not
+pass the data checks known from the <em>eRm</em> package (<em>“ill
+conditioned data matrix”</em>). This “test” is not intended for
+productive use. However, it can be used to generate a
+<em>passed_exRA</em> object on the basis of which further tests are to
+be carried out (and with Rasch models already been estimated, which
+reduces the computation time). The test can also be used to estimate
+another <em>passed_exRA</em> object with modified arguments
+(with/without standard error, with <em>psychotools</em>/
+<em>eRm</em>-based parameter estimation and, in the case of eRm-based
+estimation, with TRUE or FALSE for the sum0 argument).</p>
+</div>
+</div>
+<div id="missing-data" class="section level3">
+<h3>missing data</h3>
+<p>In the case of missing data, it is possible to ignore cases with
+missing values in the respective analysis. Set the <em>na.rm</em>
+argument TRUE to remove cases with missing data in each test. These
+cases are removed in the tests for the respective item combination only,
+not globally based on the full item set.</p>
+</div>
+<div id="alpha-correction" class="section level3">
+<h3>alpha correction</h3>
+<p>The default alpha value for hypothesis tests is 0.1, because we are
+interested in not rejecting the null hypothesis in each of the
+respective tests (itemfit with p-values, waldtest). The alpha value can
+be defined in the <em>alpha</em> argument of the
+<em>exhaustive_tests()</em> function and will be used in all of the
+specified tests. In tests that use multiple hypothesis tests (itemfit
+with p-values, waldtest), you should consider to use an alpha adjustment
+because of the multiple testing problem. Set the <em>bonf</em> argument
+TRUE to use a Bonferroni correction. The corrected local alpha will then
+be the criterion for each single p-value within a single test of an item
+combination. Note, that if you choose for a Bonferroni correction, this
+will affect all single tests with multiple hypothesis tests. It is not
+possible to use the alpha correction e.g. for the itemfit p-values on
+the onehand and not use it e.g. for the Waldtest on the other within the
+same call to <em>exhaustive_tests()</em>. Also note, that intentionally
+there is no option for an alpha correction over all tests of a call to
+<em>exhaustive_tests()</em>, but we consider to add a<del>n</del>
+respective option in a later version of the package.</p>
+</div>
+<div id="other-arguments-for-exhaustive_tests" class="section level3">
+<h3>other arguments for exhaustive_tests</h3>
+<p>To help speeding up the analyses, the performed tests are
+paralleli<u>z</u><del>s</del>ed, which means, that the computations will
+be split over the cores of your CPU. By default, all of your cpu cores
+will be used, but you can change that behavior by defining the number of
+cores to hold out in the <em>ignoreCores</em> argument. This can be
+useful if you want to perform a computationally intensive analysis
+(e.g. polytomous models with a large number of item combinations), but
+still want to work productively on this machine.</p>
+<p>You can customize aspects of parameter estimation using arguments of
+<em>estimation_control()</em> in the <em>estimation_param</em> argument.
+You can override the default parameters with a call to this function and
+providing the argument(s) to override. The <em>est</em> argument defines
+whether to use the parameter estimation and the respective functions for
+model tests of the eRm package (value <em>“eRm”</em>), of the package
+<em>psychotools</em> (with our functions for model tests, value
+<em>“psychotools”</em>) or of the package pairwise (value
+<em>“pairwise”</em>). If “<em>eRm”</em> is used, you can also choose, if
+the item parameters should start with 0 (<em>sum0=FALSE</em>) or if they
+should be summed to be 0 (<em>sum0=TRUE</em>). Using
+<em>“psychotools”</em> or <em>“pairwise”</em> in the <em>est</em>
+argument will always set <em>sum0=FALSE</em>. With the <em>boolean</em>
+argument <em>se</em> you can opt for not calculating standard errors for
+the item parameters (<em>se=FALSE</em>). Note that some tests rely on
+the standard errors. If they are part of the tests argument, the
+<em>se</em> argument will automatically be set as TRUE. If you provide
+an object of class <em>passed_exRa</em> containing previously fit models
+that were estimated without standard errors, the models will be
+re-estimated, if one of the chosen tests relies on standard errors (or
+on the Hessian matrix, respectively). The arguments <em>est</em>,
+<em>se</em> and <em>sum0</em> can also be used directly when calling
+<em>exhaustive_tests</em>. Arguments not provided will then be set to
+the default.</p>
+<p>If you do not want to trace the process of the analysis, you can set
+the <strong><em>silent</em></strong> argument TRUE to avoid these
+Outputs to the console.</p>
+</div>
+<div id="results-object-the-class-passed_exra" class="section level3">
+<h3>2.3 Results object: the class passed_exRa</h3>
+<p>The object returned by the <em>exhaustive_tests</em> function is an
+S4 class of the type <em>passed_exRa</em>. This class consists of the
+following slots (because of the S4 class the slot have to be addressed
+by using @ rather than $):</p>
+<ul>
+<li><p><strong><em>process</em></strong>: data.frame with information
+about the process of the analysis (e.g. number of the passed item
+combinations after each test)</p></li>
+<li><p><strong><em>passed_combos</em></strong>: list of vectors of the
+passed item combinations</p></li>
+<li><p><strong><em>passed_models</em></strong>: list of the fit Rasch
+model objects. The structure and class depend on the estimation method
+(eRm, pairwise, psychotools) and the modelType (RM, PCM, RSM)</p></li>
+<li><p><strong><em>passed_p.par:</em></strong> an object (list) of the
+person parameters, depending on the package used for parameter
+estimation. For eRm, this is the result of eRm::person.parameter(), and
+for pairwise this is the result of pairwise::pers(). For psychotools,
+the object comprises person parameters, itemfit indices, Rasch residuals
+and the pesron speration index (PSI)</p></li>
+<li><p><strong><em>data</em></strong>: data.frame containing the data
+used for the analysis</p></li>
+<li><p><strong><em>IC</em></strong>: information criteria (AIC, BIC,
+cAIC) for each of the remaining Rasch models (only if <em>ICs=TRUE</em>
+in <em>exhaustive_tests</em>)</p></li>
+<li><p><strong><em>timings</em></strong>: data.frame containing the
+runtime of each test</p></li>
+</ul>
+<p>The <strong><em>summary</em></strong> method for an object of the
+<em>passed_exRa</em> class delivers information about:</p>
+<ol style="list-style-type: decimal">
+<li><p>the process of the respective call to
+<em>exhaustive_tests()</em></p>
+<ul>
+<li><p>scale lengths that were analyzed</p></li>
+<li><p>initial number of item combinations</p></li>
+<li><p>performed tests</p></li>
+<li><p>number of passed item combinations after each test</p></li>
+</ul></li>
+<li><p>item importance: absolute and relative frequencies for each item
+to be used in the passed item combinations</p></li>
+<li><p>runtime of the analysis</p></li>
+</ol>
+</div>
+<div id="removing-subsets-or-supersets-of-other-item-combinations" class="section level3">
+<h3>2.4 Removing subsets or supersets of other item combinations</h3>
+<p>Depending of your data and the test criteria used for the
+<em>exhaustive_tests()</em> function, you probably will have a certain
+number of item combinations left in the <em>passed_exRa</em> object,
+that passed all of your tests and criteria. Among these item
+combinations you will likely have some combinations that represent a
+subset of another item combination (for example items 1-2-3-4 are as
+well as in the combination 1-2-3-4-6 and in 1-2-3-4-9). You can use the
+<em>remove_subsets()</em> function to remove either all subsets of a
+larger superset or vice versa. This function requires two arguments:
+Provide your object of class <em>passed_exRA</em> in the <em>obj</em>
+argument and set the <em>keep_longest</em> argument FALSE (default), if
+you want to keep the subsets and remove all supersets that contain all
+items of this subset (principle of economy). If you set
+<em>keep_longest</em> TRUE, the longer superset will be kept and all
+subsets consisting of a item combinations of this superset will be
+removed (principle of maximizing information).</p>
+</div>
+<div id="add-information-criteria-to-the-passed_exra-object" class="section level3">
+<h3>2.5 Add information criteria to the passed_exRa object</h3>
+<p>By default, the argument <em>ICs</em> of the
+<em>exhaustive_tests()</em> function is FALSE. If you change it to TRUE,
+the returned object of class <em>passed_exRa</em> will contain values
+for loig-likelihood, AIC, BIC and cAIC in its <em>@IC</em> slot. You can
+also add the information criteria  later by calling the
+<em>add_ICs()</em> function.</p>
+</div>
+</div>
+<div id="differences-between-the-estimation-methods" class="section level2">
+<h2>3. Differences between the estimation methods</h2>
+<p>In addition to <em>eRm</em>, exhaustiveRasch also supports parameter
+estimations with the <em>psychotool</em>s package since version 0.2.1
+(with fundamental changes since version 0.3.1), and since version 0.3.1
+also the <em>pairwise</em> package.</p>
+<p>The <em>eRm</em> and <em>psychotools</em> packages both use
+conditional maximum likelihood estimation (CML) for parameter
+estimation, while <em>pairwise</em> does not estimate the parameters,
+but calculates them explicitly using the pairwise procedure. For this
+reason, the results of the model tests differ between <em>pairwise</em>
+and the other two packages.</p>
+<p>Since the log-likelihood in <em>pairwise</em> is not the same as that
+from CML estimations due to the simultaneous calculation of the item and
+person parameters, a Martin-Löf test is not meaningful in pairwise and
+is therefore not supported. If <em>test_mloef</em> is among the tests,
+it is skipped in the case of pairwise and a corresponding message is
+issued. Additionally, tests for rating scale models (RSM) are not
+supported by the <em>pairwise</em> package.</p>
+<p>In principle, one would expect that the model tests in <em>eRm</em>
+and <em>psychotools</em> would produce identical results, since both
+packages use the same estimation method (CML). However, this is not
+always the case for various reasons. <em>eRm</em> carries out extensive
+data checks, in particular checking for an ill conditioned data matrix
+in dichotomous models. If such a matrix is present, the item (or several
+items) in question are not taken into account in the estimation of the
+model. <em>exhaustiveRasch</em> excludes these cases from further
+analysis because the model was not adjusted for the actually intended
+item combination. Therefore, even with the <em>no_test</em> test in
+dichotomous models (<em>modelType</em>=“RM”), item combinations can be
+excluded when estimating with <em>eRm</em>. The same applies to the
+likelihood ratio test (<em>test_LR</em>), regardless of the
+<em>modelType</em>. <em>pairwise</em> and our tests for
+<em>psychotools</em> do not perform these data checks, which
+consequently leads to (intentional) differences in the results.
+<em>test_waldtest</em> also can produce different results for
+<em>eRm</em> and <em>psychotools</em>, If i<em>cat=FALSE</em> (default)
+is set, because <em>psychotools</em> (and also <em>pairwise</em>) then
+uses the item parameters, while <em>eRm</em> always uses the item
+category parameters. In addition, in rare cases, due to different
+rounding, there may be minimal differences in the other model tests
+between <em>eRm</em> and <em>psychotools</em>, which is relevant if the
+selected criterion is either just met or not met (e.g. p-value in
+<em>test_mloef</em>). When using <em>modelType</em>=“RSM”, different
+results between <em>eRm</em> and <em>psychotools</em> will typically
+occur, because <em>eRm</em> fails to fit these models under some
+conditions (this is related to the estimation of the hessian matrix).
+This affects no_tests as well as all tests that estimate submodels after
+splits by persons or by items (<em>test_LR</em>, <em>test_mloef</em>,
+<em>test_waldtest</em>). <em>pairwise</em> does not support RSM models
+at all.</p>
+<p>Unlike <em>eRm,</em> <em>psychotools</em> and <em>pairwise</em>
+support a random split as split criteria for <em>test_waldtest,</em>
+<em>test_lr</em> and <em>test_mloef</em> (<em>psychotools</em> only),
+even if this is usually not very meaningful.</p>
+</div>
+<div id="datasets" class="section level2">
+<h2>4. Datasets</h2>
+<p>Currently, the package comes with three datasets:</p>
+<p><strong>ADL:</strong> dichotomous data for activities of daily living
+of nursing home residents (Grebe 2013).</p>
+<p><strong>InterProfessionalCollaboration:</strong> polytomous data with
+four item categories for interprofessional collaboration from nurses,
+midwifes, occupational therapists, physiotherapists ans speech
+therapists, measures with the Health Professionals Competence Scales
+(Grebe et al. 2021).</p>
+<p><strong>cognition:</strong> polytomous data with five item categories
+for perceived cognitive functioning, measures with the FACT-cog (Cella
+2017).</p>
+<p>All of these datasets come with socio-demographic overhead variables
+that can be used for analyses of differential item functioning. See the
+package documentation for item labels and answer categories.</p>
+</div>
+<div id="example-activities-of-daily-living-binary-data" class="section level2">
+<h2>5. Example: Activities of daily living (binary data)</h2>
+<p>Activities of daily living (ADL) is a concept used in geriatrics,
+gerontology, nursing and other health-care related professions that
+refers to clients’ routine self-care activities. ADL measures are widely
+used as measures of functioning in different healthcare settings. ADLs
+are key components in healthcare payment systems in most countries. The
+concept was first developed by Katz (Katz et al. 1963). This ADL measure
+used six activities: bathing, dressing, toileting, transferring, bladder
+and bowel continence and eating. The widely used ADL index of the
+Ressource Utilization Groups comprises</p>
+<p>There is good empirical evidence that the various ADL activities are
+typically maintained for different lengths of time as the need for care
+progresses. Dressing, personal hygiene and toilet use can be considered
+as “early loss” ADLs. Transfer, locomotion and bed mobility are “middle
+loss” ADLs, while the ability to eat independently generally remains the
+longest (Morris et al. 1999).</p>
+<p>In the ADL data that comes with the package (Grebe et al. 2013) there
+are 15 ADL items. The first six items address aspects of mobility
+(transferring, standing, walking and bed mobility). The next three items
+address personal hygiene (including taking a shower). There are two
+items for dressing, two items for eating/drinking and one item for
+toileting. We can subsume the last item (intimate hygiene) to toileting
+or to personal hygiene respectively. Let us assume that we want to
+construct an ADL index that preferably consists of at least one item for
+mobility, personal hygiene/dressing, eating/drinking and toileting. At
+least we do not want to overrepresented items that address the same
+activity. So, we are only interested in scales that use at least one but
+not more than two items for each activity. We consider scales with at
+least four items and with a maximum of eight items. Additionally, we do
+not want to have both of the first two items in the scale as both of
+them address transferring. We can set up these combination rules as
+follows:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(exhaustiveRasch)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">data</span>(ADL)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>rules_object <span class="ot">&lt;-</span> <span class="fu">list</span>()</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>rules_object[[<span class="dv">1</span>]] <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;max&quot;</span>, <span class="dv">2</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>) <span class="co">#mobility</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>rules_object[[<span class="dv">2</span>]] <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;min&quot;</span>, <span class="dv">1</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">6</span>) <span class="co">#mobility</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>rules_object[[<span class="dv">3</span>]] <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;max&quot;</span>, <span class="dv">2</span>, <span class="dv">7</span><span class="sc">:</span><span class="dv">11</span>) <span class="co"># personal hygiene/dressing</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>rules_object[[<span class="dv">4</span>]] <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;min&quot;</span>, <span class="dv">1</span>, <span class="dv">7</span><span class="sc">:</span><span class="dv">11</span>) <span class="co"># personal hygiene/dressing</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>rules_object[[<span class="dv">5</span>]] <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;min&quot;</span>, <span class="dv">1</span>, <span class="dv">12</span><span class="sc">:</span><span class="dv">13</span>) <span class="co"># eating/drinking</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>rules_object[[<span class="dv">6</span>]] <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;min&quot;</span>, <span class="dv">1</span>, <span class="dv">14</span><span class="sc">:</span><span class="dv">15</span>) <span class="co"># toileting</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>rules_object[[<span class="dv">7</span>]] <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;forbidden&quot;</span>, <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">2</span>)) <span class="co"># transfer from bed/ stand up from chair</span></span></code></pre></div>
+<p>The <em>apply_combo_rules()</em> function provides all item
+combinations that match our pre-defined rules. We use our rules_object
+als the <em>rules</em> argument and define the permitted scale lengths
+in the <em>combo_length</em> argument:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>final_combos <span class="ot">&lt;-</span> <span class="fu">apply_combo_rules</span>(<span class="at">combo_length=</span> <span class="dv">4</span><span class="sc">:</span><span class="dv">10</span>, <span class="at">full=</span><span class="dv">1</span><span class="sc">:</span><span class="dv">15</span>, <span class="at">rules=</span> rules_object)</span></code></pre></div>
+<p>Without applying any rules, there are 22.243 combination of 15 items
+with scales lengths between four and eight (which is the sum of the
+binomial coefficients of these scale lengths). Our applied rules reduce
+the number of permitted item combinations to 2.700 based on theoretical
+presumptions. These item combinations can now be used in a Rasch
+analysis. The <em>threshold_order</em> function is not necessary in this
+example, because the data is binary. We want to use the Martin-Löf-Test
+and Anderson’s likelihood-ratio test, both with the median rawscore as
+split criterion. For itemfit we are fine with MSQ-in- and outfits
+between 0.5 and 1.5. We do not mind neither the standardized fit indices
+nor the p-values of the chi-squared tests for item fit. For the
+likelihood-ratio test, the Martin Löf test and the Waldtest we use a
+significance level of p=0.1, as we are interested in confirming the
+null-hypothesis and want to reduce type-1 errors. But we want to address
+the multiple comparisons problem (alpha inflation) at least at the level
+of each test and use a Bonferroni correction. For these assumptions we
+can use the standard arguments, but we have to overrun the default value
+for the <em>bonf</em> argument, as well as the values for MSQ itemfit.
+We could do that by overrunning the respective arguments of the
+<em>itemfit_control()</em> function, but we also can pass these
+arguments directly to <em>exhaustive_tests()</em>, the main function of
+the the package. In the <em>tests</em> argument we have to specify all
+test functions we want to use. These tests will then be executed in the
+order specify. There is no need for the argument <em>scale_length</em>,
+as we have already pre-defined the item combinations to use. We pass our
+rules_object to the function instead, using the <em>combos</em>
+argument. So our call to the exhaustive tests function is:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>passed_ADL <span class="ot">&lt;-</span> <span class="fu">exhaustive_tests</span>(<span class="at">dset=</span>ADL, <span class="at">combos=</span>final_combos, <span class="at">modelType=</span> <span class="st">&quot;RM&quot;</span>,</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>                               <span class="at">upperMSQ=</span><span class="fl">1.5</span>, <span class="at">lowerMSQ=</span><span class="fl">0.5</span>, <span class="at">use.pval=</span>F, <span class="at">bonf=</span>T,</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>                               <span class="at">na.rm=</span>T, <span class="at">tests=</span> <span class="fu">c</span>(<span class="st">&quot;test_mloef&quot;</span>, <span class="st">&quot;test_LR&quot;</span>, <span class="st">&quot;test_itemfit&quot;</span>),</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>                               <span class="at">estimation_param =</span> <span class="fu">estimation_control</span>(</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>                                 <span class="at">est=</span><span class="st">&quot;psychotools&quot;</span>))</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt; Scale-Length 4 5 6 7 8; pre-defined set of item combinations</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt;               (&#39;combos&#39; parameter was used) </span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt; initial combos: 2700</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt; [1] &quot;computing process 1/3: test_mloef&quot;</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; Item combinations that passed test_mloef: 1919</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt; --- Runtime: 7.52 seconds</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt; [1] &quot;computing process 2/3: test_LR&quot;</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt; Item combinations that passed test_LR: 26</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt; --- Runtime: 5.16 seconds</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="co">#&gt; [1] &quot;computing process 3/3: test_itemfit&quot;</span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="co">#&gt; Item combinations that passed test_itemfit: 9</span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="co">#&gt; --- Runtime: 2.95 seconds</span></span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a><span class="co">#&gt; Fit: 9</span></span></code></pre></div>
+<p>After this step of the analysis, only 9 item combinations remain that
+meet the criteria applied (28 fulfilled the criteria applied for the
+item fit; of these, 13 remained after the Martin-Löf test and of those
+again 9 after the likelihood ratio test). From the item importance
+section of the summary we learn, that two items (eating and intimate
+hygiene) are part of all the remaining item combinations, while three
+items (walking, standing and toilet use) each are only represented in
+one of the item combinations.</p>
+<p>We would now like to examine the remaining 9 item combinations with
+regard to differential item functioning (DIF). For this purpose, we use
+the variables sex and age, that are available in the ADL data set. We
+could pass the remaining item combinations to the exhaustive_tests
+function in the <em>combos</em> argument, as we have previously passed
+the item combinations resulting from the call to the
+<em>apply_combo_rules()</em> function. However, the <em>combos</em>
+argument also accepts the entire S4 class returned by our first call to
+<em>exhaustive_tests()</em>, which we received as <em>passed_ADL</em>.
+Using the entire S4 class has the advantage that the fit models are also
+passed and do not have to be estimated again.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>passed_ADL2 <span class="ot">&lt;-</span> <span class="fu">exhaustive_tests</span>(</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  <span class="at">dset=</span>ADL, <span class="at">combos=</span>passed_ADL, <span class="at">DIFvars=</span>ADL[<span class="dv">16</span><span class="sc">:</span><span class="dv">17</span>], <span class="at">tests=</span><span class="fu">c</span>(<span class="st">&quot;test_DIFtree&quot;</span>),</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>                               <span class="at">estimation_param =</span> <span class="fu">estimation_control</span>(</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>                                 <span class="at">est=</span><span class="st">&quot;psychotools&quot;</span>))</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt; Scale-Length 4 5; pre-defined set of item combinations</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt;               (&#39;combos&#39; parameter was used) </span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; initial combos: 9</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt; [1] &quot;computing process 1/1: test_DIFtree&quot;</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; Item combinations that passed test_DIFtree: 9</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt; --- Runtime: 2.56 seconds</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co">#&gt; Fit: 9</span></span></code></pre></div>
+<p>All 9 item combinations pass this step of our analysis. But among
+these item combinations are combinations that represent a subset of
+another item combination. In the sense of the principle of economy, we
+look for the shortest scale in each case. To do this, we can use the
+function <em>remove_subsets()</em> to remove the supersets.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>passed_rem <span class="ot">&lt;-</span> <span class="fu">remove_subsets</span>(passed_ADL2, <span class="at">keep_longest=</span>F)</span></code></pre></div>
+<p>This procedure removes two item combinations, leaving 7.</p>
+<p>Now, which model from these seven options would you like to choose as
+your final model? All seven models meet the criteria we specified for
+the analysis. So it is a question of weighing up our preferences as to
+which of these models we choose:</p>
+<ol style="list-style-type: decimal">
+<li><p>we can make the decision based on an information criterion. Since
+we did not set the ICs argument to TRUE when calling the
+<em>exhaustive_tests</em> function, our <em>passed_exRA</em> object
+passed_ADL does not contain them (otherwise they would be available in
+the @IC slot). We can add the information criteria later by using the
+<em>add_ICs()</em> function. The choice for the final model could now
+fall on the one with the lowest value for your preferred information
+criterion.</p></li>
+<li><p>we can make the decision on a theoretical-content basis and
+choose any item combination that we consider to be the most suitable on
+this basis. The length of the scale may also play a role here: If the
+scale is to be part of a larger survey, then we may be interested in as
+few items as possible. If we want to be able to differentiate the
+person’s ability better, we will probably choose a model with more
+items.</p></li>
+<li><p>we can also further limit the number of models by tightening one
+or more of our established criteria. For example, we could narrow the
+range of item fit indices or choose a stricter alpha level. In this
+case, we can call the <em>exhaustive_tests()</em> function again with
+the appropriate tests and arguments and pass our <em>passed_exRa</em>
+object passed_ADL in the combos argument.</p></li>
+<li><p>If there are a manageable number of candidate models remaining
+(as in the example: 7), we can also compare these models in detail and
+use the functions of the respective package to do so. The models are
+available in the @passed-models slot. For example, we could plot the
+respective person-item maps or look at the fit indices for each model
+and make a decision on this basis.</p></li>
+</ol>
+</div>
+<div id="computation-time-and-considerations-for-the-sequence-of-tests" class="section level2">
+<h2>6. Computation time and considerations for the sequence of
+tests</h2>
+<p>Estimating the person parameters of Rasch models is computationally
+expensive, especially with an increasing number of model parameters.
+Despite the distribution of the calculations to (up to) all available
+CPU cores due to the parallelization used in the exhaustiveRasch
+package, the execution of the model tests including the verification of
+the applied criteria can require long computing times. This is
+particularly important for PCM models with many model parameters (number
+of items and response categories).</p>
+<p>The following therefore applies: Many cores (and a processor
+generation that is as up-to-date as possible) help a lot. Not only a
+higher number of physical cores is useful here, a higher number of
+virtual cores (threads) is also helpful. For analyses with a high number
+of item combinations (&gt;20 items) and more than four response
+categories, a calculation in a cloud computing environment may be
+useful.</p>
+<p>Since version 0.2.1, in addition to the CML estimation algorithms
+from the <em>eRm</em> package, the use of CML estimation algorithms from
+the <em>psychotools</em> package is also available and default since
+version 0.2.1. Since version 0.3.2 parameters calculations and model
+testing functions of the <em>pairwise</em> package also can be used.</p>
+<p>The choice of the respective package has a significant influence on
+the computation times. Compared to <em>eRM,</em> RM models are estimated
+with <em>pychotools</em> around 4x faster, and with <em>pairwise</em>
+around 5x faster. In our experience with PCM models,
+<em>psychotools</em> is around 7x faster than <em>eRm</em> on a CPU with
+8 physical cores, and <em>pairwise</em> is 14 times faster. These values
+refer to the pure model estimation (no_test). Since submodels resulting
+from the split also have to be re-estimated in <em>test_mloef</em>,
+<em>test_L</em>R and <em>test_waldtest</em>, this difference also has an
+effect on these tests, albeit to a lesser extent. With <em>test_LR</em>,
+this does not apply to pairwise, which is actually significantly slower
+in this test. Pairwise requires the person parameters for the likelihood
+ratio test, which must first be calculated.</p>
+<p>However, when analyzing a large number of item combinations, some
+consideration should be given to a productive sequence of tests to be
+used before carrying out the analyses. The tests with the shortest
+runtime are those based exclusively on the item parameters and which do
+not require any estimation of the person parameters:
+<em>test_mloef</em>, <em>test_waldtest</em> and <em>test_LR</em>.
+However, the expected trade-off between runtime and reduction of the
+remaining item combinations after the test should be considered less
+than the pure runtime of a test. Depending on the characteristics of the
+selected item combinations and the strictness of the selection criteria
+(e.g. alpha level, Bonferroni correction, upper/lower bound of itemfit
+parameters) item combinations are much stricter. Reducing the remaining
+item combinations using tests with relatively short computation times
+should be the preferred strategy.  Before testing a large number of item
+combinations, it may be a good idea to first draw a random sample of,
+for example, 1,000 to 3,000 item combinations to check how selectively
+the intended tests reduce the remaining item combinations and to
+incorporate this into the considerations regarding the order of the
+tests.</p>
+<p>A test of the fit indices (test_itemfit) is probably desirable in
+every scenario. However, this test has a comparatively long runtime and
+should therefore be carried out at a later point in time, when the
+number of remaining item combinations has already been significantly
+reduced. The same applies to all other tests that rely on person
+parameters (<em>test_personsItems</em>, <em>test_respca</em>,
+<em>test_PSI</em>).</p>
+<p>Testing for differential item functioning using <em>test_DIFtree</em>
+can require a comparatively long runtime for polytomous items (PCM or
+RSM models). This also increases with the number of external variables
+to be tested (argument DIFvars) and if these are metrically scaled
+variables or categorical variables with many factors.</p>
+<p>In general, the individual tests for analyses with longer runtimes
+(PCM models with &gt;4 response categories and several 1,000 item
+combinations) should not be carried out in a single call of
+exhaustive_tests. If no item combinations remain after a test, there is
+no longer access to the item combinations that remained after the
+penultimate test. A workflow would be better in which only one test is
+carried out first (e.g. argument <em>tests=“test_mloef”</em>). Then the
+<em>passed_exRA</em> object is passed in the <em>combos</em> argument
+for the second test. See the example with passed_ADL and passed_ADL2 in
+section 3 of this vignette.</p>
+</div>
+<div id="references" class="section level2">
+<h2>References</h2>
+<p><strong>Grebe C, Schürmann M, Latteck ÄD (2021).</strong> Die Health
+Professionals Competence Scales (HePCoS) zur Kompetenzerfassung in den
+Gesundheitsfachberufen. Technical Report. Berichte aus Forschung und
+Lehre (48). Bielefeld, Fachhochschule Bielefeld. DOI: <a href="http://dx.doi.org/10.13140/RG.2.2.13480.08967/1" class="uri">http://dx.doi.org/10.13140/RG.2.2.13480.08967/1</a></p>
+<p><strong><em>Grebe C (2013).</em></strong> “Pflegeaufwand und
+Personalbemessung in der stationären Langzeitpflege. Entwicklung eines
+empirischen Fallgruppensystems auf der Basis von
+Bewohnercharakteristika”. Oral presentation at the 3-Länderkonferenz
+Pflege &amp; Pflegewissenschaft, September 2013, Konstanz.</p>
+<p><strong>Heine JH &amp; Tarnei C (2015).</strong> Pairwise Rasch model
+item parameter recovery under sparse data conditions. Psychological Test
+and Asessment Modeling, 57(1), 3-36.</p>
+<p><strong><em>Katz S, Ford AB, Moskowitz RW, Jackson BA, Jaffe MW
+(1963).</em></strong> “Studies of illness in the aged: the index of ADL:
+a standardized measure of biological and psychosocial function”. jama,
+185(12), 914-919. <a href="doi:10.1001/jama.1963.03060120024016" class="uri">doi:10.1001/jama.1963.03060120024016</a>.</p>
+<p><strong><em>Komboz B, Zeileis A, Strobl C (2018).</em></strong>
+“Tree-Based Global Model Tests for Polytomous Rasch Models.” Educational
+and Psychological Measurement, 78(1), 128–166. <a href="doi:10.1177/0013164416664394" class="uri">doi:10.1177/0013164416664394</a>.</p>
+<p><strong><em>Linacre JM (2002).</em></strong> “What do infit and
+outfit, mean-square and standardized mean?” Rasch Measurement
+Transactions, 16 (2), 878.</p>
+<p><strong><em>Mahoney FI, Barthel DW (1965).</em></strong> “Functional
+evaluation: the Barthel index”. Maryland state medical journal, 14(2),
+61-65.</p>
+<p><strong><em>Mair P, Hatzinger R (2007).</em></strong> “Extended Rasch
+modeling: The eRm package for the application of IRT models in R.”
+Journal of Statistical Software, 20. doi: 10.18637/jss.v020.i09.</p>
+<p><strong><em>Morris JN, Fries BE, Morris SA (1999).</em></strong>
+“Scaling ADLs within the MDS”. The Journals of Gerontology: Series A,
+54(11), M546-M553. <a href="doi:10.1093/gerona/54.11.m546" class="uri">doi:10.1093/gerona/54.11.m546</a></p>
+<p><strong><em>Strobl C, Kopf J, Zeileis A (2015).</em></strong> “Rasch
+Trees: A New Method for Detecting Differential Item Functioning in the
+Rasch Model.” Psychometrika, 80(2), 289–316. <a href="doi:10.1007/s11336-013-9388-3" class="uri">doi:10.1007/s11336-013-9388-3</a>.</p>
+<p><strong>Wijayanto F, Bucur IG, Groot P, Heskes T (2023)</strong>.
+autoRasch: An R Package to Do Semi-Automated Rasch Analysis. <em>Applied
+Psychological Measurement</em>, <em>47</em>(1), 83-85.</p>
+<p><strong><em>Wright BD, Linacre JM, Gustafson JE, Martin-Löf P
+(1996)</em></strong> “Reasonable mean-square fit values”. Rasch
+measurement transactions, 2, 370.</p>
+<p><strong><em>Zeileis A, Strobl C, Wickelmaier F, Komboz B, Kopf J,
+Schneider L, Debelak R (2023)</em></strong>. “psychotools:
+Infrastructure for Psychometric Modeling”. R package version 0.7-3, <a href="https://cran.r-project.org/package=psychotools">https://CRAN.R-project.org/package=psychotools</a>.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

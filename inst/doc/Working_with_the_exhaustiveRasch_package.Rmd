@@ -1,0 +1,494 @@
+---
+title: "Working with the exhaustiveRasch package"
+subtitle: for package version 0.3.7
+author: "Christian Grebe and Mirko Schürmann"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Working with the exhaustiveRasch package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+------------------------------------------------------------------------
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## 1. Introduction
+
+The exhaustiveRasch package provides tools for exhaustive testing of Rasch models to identify measurement quality and model fit for different item combinations of a test or scale. It automates the process of testing various subsets of items under different Rasch model assumptions, helping researchers and psychometricians to:
+
+-   identify item subsets that fit the Rasch model,
+
+-   ensure unidimensionality and local independence and
+
+-   customize analyses with flexible options.
+
+The Rasch model is a foundational framework in Item Response Theory (IRT), offering a probabilistic approach to measure latent traits. This vignette briefly explains the theory behind Rasch models, describes the problem the package solves, and demonstrates how to use the package effectively.
+
+The selection of items from a larger item pool is a challenge in the context of developing Rasch valid instruments in practice. For example, items can be combined in many different ways to form a scale in order to fulfill the criteria of a Rasch scale. A serial and manual procedure to exclude items individually can lead to early exclusion of potentially suitable item combinations. Additionally, in order to derive an appropriate short form from an existing instrument, theoretical considerations are usually required in order to take into account the respective content domains or facets of the long form.
+
+Analyzing Rasch models often requires extensive testing to identify the best-fitting subsets of items, to ensure that the model assumptions like unidimensionality and local independence are met and to account for Differential Item Functioning (DIF). Manual testing of all item subsets is computationally expensive. *exhaustiveRasch* solves this by automating item subset generation, conducting rigorous model fit tests und summarizing the results.The package *exhaustiveRasch* conducts an exhaustive search over all possible item combinations. It identifies item combinations that fulfil the item and model fit criteria as defined by the user. Theoretically derived item combinations can be specified beforehand by defining rules for inclusion and exclusion of item (combinations).
+
+(Semi-) automatic item selection using Rasch principles is also addressed by the *autorasch* package (Wijayanto et al. 2023). In contrast to *autorasch,* this package aims to identify exactly one optimal model. *exhaustiveRasch*, on the other hand, tests all possible item combinations (previously reduced on a theoretical basis) against the criteria specified by the user using common model tests for Rasch models. Ultimately, it does not return the one optimal model, but all item combinations that fulfil the specified criteria.
+
+The package supports 1PL Rasch models:
+
+1)  The **Dichotomous Rasch Model** applies to binary responses (e.g., correct/incorrect answers). The probability of a correct response is:
+
+$$
+P(X_{ij} = 1|\theta_j, \beta_i) = \frac{\exp(\theta_j - \beta_i)}{1 + \exp(\theta_j - \beta_i)}
+$$
+
+where: - $\theta_j$: Person's latent trait. - $\beta_i$: Item difficulty.
+
+2)  The **Partial Credit Model (PCM)** extends the Rasch model to polytomous responses (e.g., Likert scales). The probability of a response in category $k$ is:
+
+$$
+P(X_{ij} = k|\theta_j, \beta_{ih}) = \frac{\exp\left(\sum_{h=0}^k (\theta_j - \beta_{ih})\right)}{\sum_{m=0}^{m_i} \exp\left(\sum_{h=0}^m (\theta_j - \beta_{ih})\right)}
+$$
+
+where: - $\beta_{ih}$: The threshold for category $h$.
+
+3)  The **Rating Scale Model** is a special PCM case where thresholds are uniform across items, simplifying parameter estimation.
+
+In *exhaustiveRasch*, functions of the packages ***eRm*** (Mair & Hatzinger 2007), ***psychotools*** (Zeileis et al. 2023) or ***pairwise*** (Heine & Tarnei 2015) can be used for parameter estimation and testing the model assumptions. For models estimated with *psychotools*, we provide own functions for the model tests in *exhaustiveRasch*, as this package does not provide them.
+
+## 2. Package overview
+
+The package consists of two main parts (functions). The first is to define rules for possible item combinations of the scale which should be constructed and it is saved in a list (*rules_object*). This is used in a second step to calculate all possible item combinations by the use of the function *apply_combo_rules* and is saved in a list object. For example, with the function *exhaustice_test* all the identified item combinations can be tested to identify all item combinations as candidate models which pass predefined test and criteria for Rasch measurement.
+
+### 2.1 Pre-define item combinations: *apply_combo_rules()*
+
+You can use the *apply_combo_rules()* function to define rules for item combinations to be recongnized or permitted in the candidate models. The function needs the *full* argument, a vector of numeric values for the item indices of the full item set to be processed. For example, if the function should be applied to a full set of 10 items, the *full* argument must be set to 1:10.
+
+You can define the length of the scales by setting the *combo_length* argument. This argument can be a single numeric value or a vector of numeric values. For example, with *combo_length=6* only combinations of 6 items are selected. or with *combo_length=4:6* only combinations with at least 4 and not more than 6 items are selected. with *combo_length c(4,7,8)* only combinations with 4,7 and 8 items are selected. If not specified, all scale length between 4 and the maximum number of items in full will be used.
+
+There are four types of rules that can be defined:
+
+-   maximum rule: a maximum of x out of y items,
+
+-   minimum rule: at least of x out of y items,
+
+-   forbidden rule: item combinations that are not permitted and
+
+-   forced: items will be present on any of the selected item combinations.
+
+The way to define maximum, minimum and forbidden rules is to use a list of lists (one list for each rule). For ***minimum and maximum rules*** each list has to contain three values:
+
+-   a character string ("min" or "max") that defines the type of the rule,
+
+-   a numeric value that defines the minimum/ maximum value (e.g. 2 for at least/ at most 2 items) and
+
+-   a numeric vector with the indices of items to apply the rule to *list("min", 1, 1:6)* defines a rule for selecting at least one of the items 1-6.
+
+For example, *list("max", 3, 1:6)* defines a rule for selecting at most three of the items 1-6.
+
+A list for a ***forbidden rule*** contains only two values:
+
+-   the character string "forbidden" that defines the type of the rule and
+
+-   a numeric vector with the indices of items to apply the rule to.
+
+So the *list("forbidden", c(8,10))* defines a rule that prevents selecting both of the items 8 and 10 for a candidate model. You have to combine the lists with the minimum, maximum and forbidden rules to one list of lists that contains all the rules to be applied, for example:
+
+```{r Define combination rules}
+rules_object <- list()
+
+rules_object[[1]] <- list("min", 1, 1:6)
+
+rules_object[[2]] <- list("max", 3, 1:6)
+
+rules_object[[3]] <- list("forbidden", c(8,10)) 
+```
+
+These three rules lead to a selection of candidate models with at least one but at most three of the first six items, while in none of the selected item combinations items 8 and 10 will both be present.
+
+The ***forced rule*** is not defined in that lists of lists. To force items to be selected for any candidate model, use can use the *forced_items* argument of the function. Provide the item indices(s) as a numeric value or a vector of numeric values. *forced_items = c(4,7)* will ensure that items 4 and 7 will be present in all of the candidate models.
+
+### 2.2 Test model fit: The exhaustive_tests() function
+
+Provide the data to analyze as a data.frame using the *dset* argument.
+
+At first, you have to decide which item combinations for candidate models you want to test. You can choose from three approaches:
+
+-   **Approach A) Test all item combinations with given scale lengths.** Use this approach if you don't have any theoretical considerations in mind that should be addressed by defining rules using the *apply_combo_rules* function. All item combinations will be tested that meet the number of items provided in the *scale_length* argument. The *scale_length* argument expects a numeric vector, e.g. *c(4:8)* for any item combinations with at least 4 and at most 8 items (see the examples for the *combo_length* argument of the *apply_combo_rules* function above). If you do not set the *scale_length* argument and do not provide pre-selected item combinations using the *combos* argument (approaches B and C), all possible item combinations will be tested with a minimum scale length of 4 to the maximum scale length (number of items in your data frame).
+
+-   **Approach B) Use pre-defined item combinations from the result of a previous call of the *apply_combo_rules()*** function (see above). Use the results object from this call as the *combos* argument.
+
+-   **Approach C) Use results of a previous call of the *exhaustive_tests* function.** You can use the item combinations that passed a previous call for further tests. This is useful, if the previous call led to a greater number of candidate models that you want to reduce further. For example, you could use tests in the second run that you did not use in the first run. Or you could use stricter criteria in the second run (e.g. use stricter values for the upper and lower bound of itemfit indices, define a stricter level of significance, additionally set criteria for the standardized itemfit indices if you only used MSQ-based indices in the first run or use another split criterion for Anderson's LR Test or other external variables for the DIF-Tree analysis). Use the item combinations from the *\@passed_combos* list of the results objects of the first run for this approach.
+
+Second, **specify the type of Rasch models to fit** using the *modelType* argument. For binary data use *"RM"* to fit dichotomous Rasch models. For polytomous data you can choose between *"PCM"* for partial credit models or *"RSM"* for Rating-Scale Rasch models.
+
+Third, **select the tests for model and item fit** you want to use. The tests have to be specified in the *tests* argument as a vector of characters (strings). The tests will be conducted in the order you use in the vector. Table 1 shows the available tests for the *tests* argument. These are described in more detail in the following.*Table 1: overview of the available tests*
+
+```{r table 1, echo=FALSE}
+tab_tests <- c("all_rawscores",
+               "no_test",
+               "test_DIFtree",
+               "test_itemfit",
+               "test_LR",
+               "test_mloef",
+               "test_PSI",
+               "test_personsItems",
+               "test_respca",
+               "test_waldtest",
+               "threshold_order"
+)
+
+tab_desc <- c("checks, if all possible rawscores (sums of item scores) are empirically respresented in the data",
+              "No test is performed, but the returned passed_exRa object contains fit models for the provided item combinations",
+              "tests differential item functioning (DIF) related to the specified external variables by using raschtrees; checks, if no split is present is the resulting tree.",
+              "checks, if the fit- indices (infit, outfit) are within the specified range",
+              "performs Anderson’s likelihood ratio test with the specified split criterion",
+              "performs the Martin-Löf test with the specified split criterion",
+              "checks if the person separation index (PSI) - also known as person reliabilty exceeds the given value (between 0 and 1).",
+              "checks, if there are item thresholds in the extreme low and high range of the latent dimension and/or checks, if the amount of item thresholds between neighboring person parameters is above the specified percentage",
+              "performs a principal components analysis on the rasch residuals; checks if the eigenvalue of the highest loading contrast is below the specified value",
+              "performs a Waldtest with the specified split criterion; checks, if all items have p-values below the specified alpha (or local alpha, if a Bonferroni correction is used)",
+              "checks, if all threshold locations are ordered (not applicable for dichotomous rasch models)"
+)
+
+tab_param <- c("no arguments",
+               "no arguments",
+               "no arguments (but DIFvars must be provided)",
+               "MSQ in- and outfits between 0.7 and 1.3 and no significant p-values (alpha=0.1, no Bonferroni correction)",
+               "median rawscore as split criterion, no significant p-values (alpha=0.1, no Bonferroni correction)",
+               "median rawscore as split criterion, no significant p-values (alpha=0.1)",
+               "values above 0.8",
+               "checks for thresholds in the extreme ranges, but not for the amount of thresholds between person parameters",
+               "maximum eigenvalue of 1.5",
+               "median rawscore as split criterion, no significant p-values (alpha=0.1, no Bonferroni correction)",
+               "no arguments"
+)
+
+tab <- as.data.frame(cbind(tab_tests, tab_desc, tab_param))
+colnames(tab) <- c("test", "description", "default setting")
+knitr::kable(tab) 
+```
+
+#### test_itemfit
+
+According to the estimation method defined in the est argument, this tests checks the itemfit indices using the *itemfit()* function of the eRm package, the *pers()* function of the *pairwise* package or, for parameters estimated with *psychotools*, the *ppar.psy()* function that is part of *exhaustiveRasch* . You can define the criteria to use for candidate models to be considered as showing acceptable item fit using the *itemfit_control()* function. This function sets standard values that can be overridden.
+
+-   evaluate only infits (set *outfits* argument FALSE) or infits and outfits (set *outfits* argument TRUE)
+
+-   evaluate only MSQ fits (set *msq* argument TRUE and *zstd* argument FALSE) or only z-standardized fits (set *zstd* argument TRUE and *msq* argument FALSE) or both of them (set both arguments TRUE).
+
+-   evaluate p-values of the chi-squared tests additionally to the fit indices above (set *use.pval* argument TRUE. The level of significance is not to be set in the *itemfit_control()* function but globally in using the *alpha* argument of the *exhaustive_tests()* function). You can also add a Bonferroni adjustment for the p-values (this also has to be set globally for all tests in the *exhaustive tests()* function by setting the *bonf* argument TRUE).
+
+-   use the weighted fit indices instead of the unweighted fit indices (set the *use.rel* argument TRUE in the call to the *itemfit_control()* function. This argument is only available when using *psychotools* or *pairwise* for parameter estimation and will be ignored if using *eRm* estimation.
+
+You can either override any of the standard value set by *itemfit_control* with a call to that function (e.g. using *control= itemfit_control(outfits=F, zstd=T). This* will evaluate infits only -- MSQ infits as well as z-standardized infits -- and will use all other arguments with their standard value). Or you can pass *itemfit_control()* arguments directly to the *exhaustive_tests()* function (e.g. use outfits=F as an argument in a call to *exhaustive_tests()*).
+
+In the literature on Rasch analysis, there are many indications on what limits should be applied for the upper and lower limits of the fit indices. The most common reference is Linacre (2002), who gives recommendations for both MSQ fit indices (see table 2) and standardized fit indices (see table 3).
+
+*Table 2: MSQ Infit and outfit values and implications for measurement (Linacre 2002)*
+
+```{r table 2, echo=FALSE}
+tab_value <- c("> 2.0",
+               "1.5 - 2.0",
+               "0.5 - 1.5",
+               "< 0.5"
+)
+
+tab_implic <- c("Distorts or degrades the measurement system. May be caused by only one or two observations.",
+                "Unproductive for construction of measurement, but not degrading.",
+                "Productive for measurement.",
+                "Less productive for measurement, but not degrading. May produce misleadingly high reliability and separation coefficients."
+)
+tab <- as.data.frame(cbind(tab_value, tab_implic))
+colnames(tab) <- c("MSQ", "implication for measurement")
+knitr::kable(tab) 
+```
+
+*Table 3: standardised Infit and outfit values and implications for measurement (Linacre 2002)*
+
+```{r table 3, echo=FALSE}
+tab_value <- c("≥ 3",
+               "2.0 - 2.9",
+               "-1.9- 1.9",
+               "≤ -2"
+)
+
+tab_implic <- c("Data very unexpected if they fit the model (perfectly), so they probably do not. But, with large sample size, substantive misfit may be small.",
+                "Data noticeably unpredictable.",
+                "Data have reasonable predictability.",
+                "Data are too predictable. Other 'dimensions' may be constraining the response patterns."
+)
+tab <- as.data.frame(cbind(tab_value, tab_implic))
+colnames(tab) <- c("standardized value", "implication for measurement")
+knitr::kable(tab) 
+```
+
+Wright et al. (1996) recommend limits of varying stringency depending on the purpose of the scale being developed (see table 4). In many situations, MSQ fit indices between 0.5 and 1.5 can be considered acceptable, but our default value for *test_itemfit* is the stricter range between 0.7 and 1.3 for MSQ fit indices or -1.96 - 1.96 for standardized fit indices.
+
+The p-values should be interpreted with caution for large samples, as the hypothesis tests are then typically overpowered.
+
+*Table 4: reasonable MSQ ranges for infit and outfit (Wright et al. 1996)*
+
+```{r table 4, echo=FALSE}
+tab_value <- c("MCQ (high stakes)",
+               "MCQ (run of the mill)",
+               "rating scale (survey)",
+               "clinical observation",
+               "judged (agreement encouraged)"
+)
+
+tab_implic <- c("0.8 - 1.2",
+                "0.7 - 1.3",
+                "0.6 - 1.4",
+                "0.5 - 1.7",
+                "0.4 - 1.2"
+)
+tab <- as.data.frame(cbind(tab_value, tab_implic))
+colnames(tab) <- c("type of test", "range")
+knitr::kable(tab) 
+```
+
+#### test_respca
+
+This test performs a principal components analysis on the standardized Rasch residuals ('Rasch PCA') and is a test on the unidimensionality assumption of the Rasch model. The criterion to pass this test is the maximum loading for a component (contrast) of this PCA, as defined in the *max_contrast* argument.
+
+#### test_mloef
+
+This test performs Martin-Löf tests using the *MLoef()* function of *eRm* for parameters estimated using *eRm* or the *mloef.psy()* function of exhaustiveRasch for psychotools parameters. If using *pairwise* for parameter calculation, *test*\_*mloef()* is not available and will be removed if under the tests defined in the *tests* argument. The default split criterion is a split by median. If you want to use another split criterion, you can set this using the *splitcr_mloef* argument. Use *"mean"* for a split by mean. You also can set a custom split criterion using a numerical vector with two distinct value to define two groups of items (e.g. the even and the odd items). This length of the vector has to match the length of the scale. Therefore, this approach is only feasible, if all candidate models have the same number of items (*scale_length* argument). If you use *psychotools* or *pairwise* for parameter estimation, the *splitcr_mloef* argument can also be set to *"random"* for a random split. Candidate models pass this test if the null hypothesis is not rejected. The level of significance can be set globally for all tests by using the *alpha* argument.
+
+#### test_LR
+
+This test performs Anderson's likelihood ratio tests using the *LRtest()* function from eRm, the *andersentest.pers()* function from pairwise, or, for psychotools parameters, the *LRtest.psy()* function from exhaustiveRasch. Just like for the *test_mloef()* function, a median split is the default split criterion and a custom split criterion can be used by providing a numerical vector with the argument *splitcr_LR* to define the groups. This vector has to match the number of persons in the data frame. Unlike in the *test_mloef()* function, you can define more than two groups as custom split criterion, e.g. you can use *"all.R"* as a value for *splitcr_LR* to define groups based on the empirical rawscores. You also can use *"mean"* as a value for *splitcr_LR* to split by mean. If you use *pairwise* or *psychotools* for parameter estimation, you also can use *"random"* for a random split. Candidate models pass this test if the null hypothesis is not rejected. The level of significance can be set globally for all tests by using the *alpha* argument and a Bonferroni correction can be used by setting the *bonf* argument TRUE.
+
+Note that the default split criterion, the median split, is not useful for ordinal models (PCM and RSM), because items are eliminated if they do not have the same number of categories in each subgroup. In *exhaustiveRasch*, item combinations are considered as not passing the test in this case. The authors of the *eRm* package suggest to use either a random split or a custom (external) split criterion in these cases. We recommend using *test_LR* for PCM and RSM models with an external split criterion (to be passed in the argument *splitcr_LR*), as a random split is not very helpful for the analysis.
+
+#### threshold_order
+
+This test checks if the item threshold locations (beta parameters) of each item are ordered. This is only relevant for polytomous data (*modelType* "PCM" or "RSM") and therefore is meaningless for binary data (*modelType* "RM").
+
+#### test_waldtest
+
+This test performs aldlike tests using the *Waldtest()* function of *eRm, the pairwise.S() function of pairwise or, for psychotools parameters, the waldtest.psy() function of exhaustiveRasch*. The default split criterion is split by median. You can define other split criteria by using the *splitcr_wald* argument, use *"mean"* to split the individuals by the mean of their raw scores. You can also define a custom split criterion by providing a numeric vector that assigns every person to one of two groups. This vector has to match the number of persons in the data.frame. Candidate models pass this test if the null hypothesis is not rejected. The level of significance can be set globally for all tests by using the *alpha* argument and a Bonferroni correction can be used by setting the *bonf* argument TRUE.
+
+Note that the default split criterion, the median split, is not useful for ordinal models (PCM and RSM), because items are eliminated if they do not have the same number of categories in each subgroup. In *exhaustiveRasch*, item combinations are considered as not passing the test in this case. The authors of the eRm package suggest to use either a random split or a custom (external) split criterion in these cases. We recommend using the Waldtest for PCM and RSM with an external split criterion (to be passed in the argument *splitcr_wald*), as a random split is not very helpful for the analysis.
+
+When using *pairwise* or *psychotools* as estimation method, the parameter *icat_wald* is available. If this parameter is set TRUE, the item category parameters will be used, if set FALSE, the item parameters (sigma) are used.
+
+#### test_DIFtree
+
+This test checks for differential item function using the *raschtree* function of the *psychotree* package (the *rstree* or *pctree* function respectively, depending on *modelType*; Strobl et al. 2015, Komboz et al., 2018). You can use several external variables at once that can be binary, as well as categorical or continuous. Provide the external variables as a data.frame using the *DIFvars* argument. The function builds decision trees. Nodes in the tree indicate differential item functioning for the split point that defines the actual tree node. See the documentation on the function rstree, pctree and rstree in psychotree for more details. Candidate models pass this test if the number of tree nodes is 1.
+
+#### test_personsItems
+
+This test analyses the relationship between the person parameter distribution and the item (or: threshold) locations as you would do it when manually inspecting a personitem-map or Wright map (for example when using the *plotPImap()* function of the *eRm* package. The analysis implemented in this can check two different aspects.
+
+First, you can use the *boolean* argument extremes (values TRUE or FALSE). This checks if the inspected scale differentiates well in the upper as well as in the lower range of the latent dimension. This is done by checking whether there is an item or threshold location beyond the second highest and second lowest person parameters. Second, you can define the minimum proportion of neighboring person parameters with an item/threshold location in between by using the *gap_prop* argument. Set this argument to any decimal between 0 and 1 to define the minimum proportion. If set to 0 this check will be ignored. Note that in the case of missing values in your data you will probably have many different person parameters. In these cases the use of the *gap_prop* argument is not useful and should be avoided.
+
+#### test_PSI
+
+This test checks whether the person separation index also known as "person reliability") is at least equal to the selected value. This value must be specified with the *PSI* argument (default: PSI= 0.8). For parameters estimated with *eRm*, *test_PSI* uses the *SepRel()* function of *eRm*, for *pairwise* or *psychotools* parameters, the person separator index value is part of the respective person parameter object (from *pers()* for *pairwise* or from the *ppar.psy()* function of *exhaustiveRasch* for *psychotools*).
+
+#### all_rawscores
+
+This test checks if all possible raw scores of the inspected scale are represented in the data. For example, if the scale consists of 4 binary outcomes there are 5 possible raw scores when summing up these items (raw scores 0 to 4). If at least one of these possible raw score does not occur in the data, this test is not passed. Note that the passing or failing of this test does not have any meaning for considering if the scale is Rasch valid. But if you have a low number of possible raw scores, you perhaps want to make sure, that these are all represented by the scale. This test is particularly useful for these cases, whereas it is too strict for a larger number of possible raw scores (especially for ordinal items with a high number of response categories) and should be avoided.
+
+#### no_test
+
+This test is not a test in the strict sense. It merely estimates the model parameters and returns a *passed_exRA* object including the *\@passed_models* slot. In the case of dichotomous RM models, however, the remaining item combinations may be reduced if they do not pass the data checks known from the *eRm* package (*"ill conditioned data matrix"*). This "test" is not intended for productive use. However, it can be used to generate a *passed_exRA* object on the basis of which further tests are to be carried out (and with Rasch models already been estimated, which reduces the computation time). The test can also be used to estimate another *passed_exRA* object with modified arguments (with/without standard error, with *psychotools*/ *eRm*-based parameter estimation and, in the case of eRm-based estimation, with TRUE or FALSE for the sum0 argument).
+
+### missing data
+
+In the case of missing data, it is possible to ignore cases with missing values in the respective analysis. Set the *na.rm* argument TRUE to remove cases with missing data in each test. These cases are removed in the tests for the respective item combination only, not globally based on the full item set.
+
+### alpha correction
+
+The default alpha value for hypothesis tests is 0.1, because we are interested in not rejecting the null hypothesis in each of the respective tests (itemfit with p-values, waldtest). The alpha value can be defined in the *alpha* argument of the *exhaustive_tests()* function and will be used in all of the specified tests. In tests that use multiple hypothesis tests (itemfit with p-values, waldtest), you should consider to use an alpha adjustment because of the multiple testing problem. Set the *bonf* argument TRUE to use a Bonferroni correction. The corrected local alpha will then be the criterion for each single p-value within a single test of an item combination. Note, that if you choose for a Bonferroni correction, this will affect all single tests with multiple hypothesis tests. It is not possible to use the alpha correction e.g. for the itemfit p-values on the onehand and not use it e.g. for the Waldtest on the other within the same call to *exhaustive_tests()*. Also note, that intentionally there is no option for an alpha correction over all tests of a call to *exhaustive_tests()*, but we consider to add a~~n~~ respective option in a later version of the package.
+
+### other arguments for exhaustive_tests
+
+To help speeding up the analyses, the performed tests are paralleli[z]{.underline}~~s~~ed, which means, that the computations will be split over the cores of your CPU. By default, all of your cpu cores will be used, but you can change that behavior by defining the number of cores to hold out in the *ignoreCores* argument. This can be useful if you want to perform a computationally intensive analysis (e.g. polytomous models with a large number of item combinations), but still want to work productively on this machine.
+
+You can customize aspects of parameter estimation using arguments of *estimation_control()* in the *estimation_param* argument. You can override the default parameters with a call to this function and providing the argument(s) to override. The *est* argument defines whether to use the parameter estimation and the respective functions for model tests of the eRm package (value *"eRm"*), of the package *psychotools* (with our functions for model tests, value *"psychotools"*) or of the package pairwise (value *"pairwise"*). If "*eRm"* is used, you can also choose, if the item parameters should start with 0 (*sum0=FALSE*) or if they should be summed to be 0 (*sum0=TRUE*). Using *"psychotools"* or *"pairwise"* in the *est* argument will always set *sum0=FALSE*. With the *boolean* argument *se* you can opt for not calculating standard errors for the item parameters (*se=FALSE*). Note that some tests rely on the standard errors. If they are part of the tests argument, the *se* argument will automatically be set as TRUE. If you provide an object of class *passed_exRa* containing previously fit models that were estimated without standard errors, the models will be re-estimated, if one of the chosen tests relies on standard errors (or on the Hessian matrix, respectively). The arguments *est*, *se* and *sum0* can also be used directly when calling *exhaustive_tests*. Arguments not provided will then be set to the default.
+
+If you do not want to trace the process of the analysis, you can set the ***silent*** argument TRUE to avoid these Outputs to the console.
+
+### 2.3 Results object: the class passed_exRa
+
+The object returned by the *exhaustive_tests* function is an S4 class of the type *passed_exRa*. This class consists of the following slots (because of the S4 class the slot have to be addressed by using \@ rather than \$):
+
+-   ***process***: data.frame with information about the process of the analysis (e.g. number of the passed item combinations after each test)
+
+-   ***passed_combos***: list of vectors of the passed item combinations
+
+-   ***passed_models***: list of the fit Rasch model objects. The structure and class depend on the estimation method (eRm, pairwise, psychotools) and the modelType (RM, PCM, RSM)
+
+-   ***passed_p.par:*** an object (list) of the person parameters, depending on the package used for parameter estimation. For eRm, this is the result of eRm::person.parameter(), and for pairwise this is the result of pairwise::pers(). For psychotools, the object comprises person parameters, itemfit indices, Rasch residuals and the pesron speration index (PSI)
+
+-   ***data***: data.frame containing the data used for the analysis
+
+-   ***IC***: information criteria (AIC, BIC, cAIC) for each of the remaining Rasch models (only if *ICs=TRUE* in *exhaustive_tests*)
+
+-   ***timings***: data.frame containing the runtime of each test
+
+The ***summary*** method for an object of the *passed_exRa* class delivers information about:
+
+1.  the process of the respective call to *exhaustive_tests()*
+
+    -   scale lengths that were analyzed
+
+    -   initial number of item combinations
+
+    -   performed tests
+
+    -   number of passed item combinations after each test
+
+2.  item importance: absolute and relative frequencies for each item to be used in the passed item combinations
+
+3.  runtime of the analysis
+
+### 2.4 Removing subsets or supersets of other item combinations
+
+Depending of your data and the test criteria used for the *exhaustive_tests()* function, you probably will have a certain number of item combinations left in the *passed_exRa* object, that passed all of your tests and criteria. Among these item combinations you will likely have some combinations that represent a subset of another item combination (for example items 1-2-3-4 are as well as in the combination 1-2-3-4-6 and in 1-2-3-4-9). You can use the *remove_subsets()* function to remove either all subsets of a larger superset or vice versa. This function requires two arguments: Provide your object of class *passed_exRA* in the *obj* argument and set the *keep_longest* argument FALSE (default), if you want to keep the subsets and remove all supersets that contain all items of this subset (principle of economy). If you set *keep_longest* TRUE, the longer superset will be kept and all subsets consisting of a item combinations of this superset will be removed (principle of maximizing information).
+
+### 2.5 Add information criteria to the passed_exRa object
+
+By default, the argument *ICs* of the *exhaustive_tests()* function is FALSE. If you change it to TRUE, the returned object of class *passed_exRa* will contain values for loig-likelihood, AIC, BIC and cAIC in its *\@IC* slot. You can also add the information criteria  later by calling the *add_ICs()* function.
+
+## 3. Differences between the estimation methods
+
+In addition to *eRm*, exhaustiveRasch also supports parameter estimations with the *psychotool*s package since version 0.2.1 (with fundamental changes since version 0.3.1), and since version 0.3.1 also the *pairwise* package.
+
+The *eRm* and *psychotools* packages both use conditional maximum likelihood estimation (CML) for parameter estimation, while *pairwise* does not estimate the parameters, but calculates them explicitly using the pairwise procedure. For this reason, the results of the model tests differ between *pairwise* and the other two packages.
+
+Since the log-likelihood in *pairwise* is not the same as that from CML estimations due to the simultaneous calculation of the item and person parameters, a Martin-Löf test is not meaningful in pairwise and is therefore not supported. If *test_mloef* is among the tests, it is skipped in the case of pairwise and a corresponding message is issued. Additionally, tests for rating scale models (RSM) are not supported by the *pairwise* package.
+
+In principle, one would expect that the model tests in *eRm* and *psychotools* would produce identical results, since both packages use the same estimation method (CML). However, this is not always the case for various reasons. *eRm* carries out extensive data checks, in particular checking for an ill conditioned data matrix in dichotomous models. If such a matrix is present, the item (or several items) in question are not taken into account in the estimation of the model. *exhaustiveRasch* excludes these cases from further analysis because the model was not adjusted for the actually intended item combination. Therefore, even with the *no_test* test in dichotomous models (*modelType*="RM"), item combinations can be excluded when estimating with *eRm*. The same applies to the likelihood ratio test (*test_LR*), regardless of the *modelType*. *pairwise* and our tests for *psychotools* do not perform these data checks, which consequently leads to (intentional) differences in the results. *test_waldtest* also can produce different results for *eRm* and *psychotools*, If i*cat=FALSE* (default) is set, because *psychotools* (and also *pairwise*) then uses the item parameters, while *eRm* always uses the item category parameters. In addition, in rare cases, due to different rounding, there may be minimal differences in the other model tests between *eRm* and *psychotools*, which is relevant if the selected criterion is either just met or not met (e.g. p-value in *test_mloef*). When using *modelType*="RSM", different results between *eRm* and *psychotools* will typically occur, because *eRm* fails to fit these models under some conditions (this is related to the estimation of the hessian matrix). This affects no_tests as well as all tests that estimate submodels after splits by persons or by items (*test_LR*, *test_mloef*, *test_waldtest*). *pairwise* does not support RSM models at all.
+
+Unlike *eRm,* *psychotools* and *pairwise* support a random split as split criteria for *test_waldtest,* *test_lr* and *test_mloef* (*psychotools* only), even if this is usually not very meaningful.
+
+## 4. Datasets
+
+Currently, the package comes with three datasets:
+
+**ADL:** dichotomous data for activities of daily living of nursing home residents (Grebe 2013).
+
+**InterProfessionalCollaboration:** polytomous data with four item categories for interprofessional collaboration from nurses, midwifes, occupational therapists, physiotherapists ans speech therapists, measures with the Health Professionals Competence Scales (Grebe et al. 2021).
+
+**cognition:** polytomous data with five item categories for perceived cognitive functioning, measures with the FACT-cog (Cella 2017).
+
+All of these datasets come with socio-demographic overhead variables that can be used for analyses of differential item functioning. See the package documentation for item labels and answer categories.
+
+## 5. Example: Activities of daily living (binary data)
+
+Activities of daily living (ADL) is a concept used in geriatrics, gerontology, nursing and other health-care related professions that refers to clients' routine self-care activities. ADL measures are widely used as measures of functioning in different healthcare settings. ADLs are key components in healthcare payment systems in most countries. The concept was first developed by Katz (Katz et al. 1963). This ADL measure used six activities: bathing, dressing, toileting, transferring, bladder and bowel continence and eating. The widely used ADL index of the Ressource Utilization Groups comprises
+
+There is good empirical evidence that the various ADL activities are typically maintained for different lengths of time as the need for care progresses. Dressing, personal hygiene and toilet use can be considered as "early loss" ADLs. Transfer, locomotion and bed mobility are "middle loss" ADLs, while the ability to eat independently generally remains the longest (Morris et al. 1999).
+
+In the ADL data that comes with the package (Grebe et al. 2013) there are 15 ADL items. The first six items address aspects of mobility (transferring, standing, walking and bed mobility). The next three items address personal hygiene (including taking a shower). There are two items for dressing, two items for eating/drinking and one item for toileting. We can subsume the last item (intimate hygiene) to toileting or to personal hygiene respectively. Let us assume that we want to construct an ADL index that preferably consists of at least one item for mobility, personal hygiene/dressing, eating/drinking and toileting. At least we do not want to overrepresented items that address the same activity. So, we are only interested in scales that use at least one but not more than two items for each activity. We consider scales with at least four items and with a maximum of eight items. Additionally, we do not want to have both of the first two items in the scale as both of them address transferring. We can set up these combination rules as follows:
+
+```{r Define ombination rules (ADL example)}
+library(exhaustiveRasch)
+data(ADL)
+rules_object <- list()
+rules_object[[1]] <- list("max", 2, 1:6) #mobility
+rules_object[[2]] <- list("min", 1, 1:6) #mobility
+rules_object[[3]] <- list("max", 2, 7:11) # personal hygiene/dressing
+rules_object[[4]] <- list("min", 1, 7:11) # personal hygiene/dressing
+rules_object[[5]] <- list("min", 1, 12:13) # eating/drinking
+rules_object[[6]] <- list("min", 1, 14:15) # toileting
+rules_object[[7]] <- list("forbidden", c(1,2)) # transfer from bed/ stand up from chair
+```
+
+The *apply_combo_rules()* function provides all item combinations that match our pre-defined rules. We use our rules_object als the *rules* argument and define the permitted scale lengths in the *combo_length* argument:
+
+```{r Apply combination rules (ADL example)}
+final_combos <- apply_combo_rules(combo_length= 4:10, full=1:15, rules= rules_object)
+```
+
+Without applying any rules, there are 22.243 combination of 15 items with scales lengths between four and eight (which is the sum of the binomial coefficients of these scale lengths). Our applied rules reduce the number of permitted item combinations to 2.700 based on theoretical presumptions. These item combinations can now be used in a Rasch analysis. The *threshold_order* function is not necessary in this example, because the data is binary. We want to use the Martin-Löf-Test and Anderson's likelihood-ratio test, both with the median rawscore as split criterion. For itemfit we are fine with MSQ-in- and outfits between 0.5 and 1.5. We do not mind neither the standardized fit indices nor the p-values of the chi-squared tests for item fit. For the likelihood-ratio test, the Martin Löf test and the Waldtest we use a significance level of p=0.1, as we are interested in confirming the null-hypothesis and want to reduce type-1 errors. But we want to address the multiple comparisons problem (alpha inflation) at least at the level of each test and use a Bonferroni correction. For these assumptions we can use the standard arguments, but we have to overrun the default value for the *bonf* argument, as well as the values for MSQ itemfit. We could do that by overrunning the respective arguments of the *itemfit_control()* function, but we also can pass these arguments directly to *exhaustive_tests()*, the main function of the the package. In the *tests* argument we have to specify all test functions we want to use. These tests will then be executed in the order specify. There is no need for the argument *scale_length*, as we have already pre-defined the item combinations to use. We pass our rules_object to the function instead, using the *combos* argument. So our call to the exhaustive tests function is:
+
+```{r Run tests (ADL example)}
+passed_ADL <- exhaustive_tests(dset=ADL, combos=final_combos, modelType= "RM",
+                               upperMSQ=1.5, lowerMSQ=0.5, use.pval=F, bonf=T,
+                               na.rm=T, tests= c("test_mloef", "test_LR", "test_itemfit"),
+                               estimation_param = estimation_control(
+                                 est="psychotools"))
+```
+
+After this step of the analysis, only 9 item combinations remain that meet the criteria applied (28 fulfilled the criteria applied for the item fit; of these, 13 remained after the Martin-Löf test and of those again 9 after the likelihood ratio test). From the item importance section of the summary we learn, that two items (eating and intimate hygiene) are part of all the remaining item combinations, while three items (walking, standing and toilet use) each are only represented in one of the item combinations.
+
+We would now like to examine the remaining 9 item combinations with regard to differential item functioning (DIF). For this purpose, we use the variables sex and age, that are available in the ADL data set. We could pass the remaining item combinations to the exhaustive_tests function in the *combos* argument, as we have previously passed the item combinations resulting from the call to the *apply_combo_rules()* function. However, the *combos* argument also accepts the entire S4 class returned by our first call to *exhaustive_tests()*, which we received as *passed_ADL*. Using the entire S4 class has the advantage that the fit models are also passed and do not have to be estimated again.
+
+```{r Run additional test (ADL example)}
+passed_ADL2 <- exhaustive_tests(
+  dset=ADL, combos=passed_ADL, DIFvars=ADL[16:17], tests=c("test_DIFtree"),
+                               estimation_param = estimation_control(
+                                 est="psychotools"))
+```
+
+All 9 item combinations pass this step of our analysis. But among these item combinations are combinations that represent a subset of another item combination. In the sense of the principle of economy, we look for the shortest scale in each case. To do this, we can use the function *remove_subsets()* to remove the supersets.
+
+```{r Remove subsets (ADL example)}
+passed_rem <- remove_subsets(passed_ADL2, keep_longest=F)
+```
+
+This procedure removes two item combinations, leaving 7.
+
+Now, which model from these seven options would you like to choose as your final model? All seven models meet the criteria we specified for the analysis. So it is a question of weighing up our preferences as to which of these models we choose:
+
+1.  we can make the decision based on an information criterion. Since we did not set the ICs argument to TRUE when calling the *exhaustive_tests* function, our *passed_exRA* object passed_ADL does not contain them (otherwise they would be available in the \@IC slot). We can add the information criteria later by using the *add_ICs()* function. The choice for the final model could now fall on the one with the lowest value for your preferred information criterion.
+
+2.  we can make the decision on a theoretical-content basis and choose any item combination that we consider to be the most suitable on this basis. The length of the scale may also play a role here: If the scale is to be part of a larger survey, then we may be interested in as few items as possible. If we want to be able to differentiate the person's ability better, we will probably choose a model with more items.
+
+3.  we can also further limit the number of models by tightening one or more of our established criteria. For example, we could narrow the range of item fit indices or choose a stricter alpha level. In this case, we can call the *exhaustive_tests()* function again with the appropriate tests and arguments and pass our *passed_exRa* object passed_ADL in the combos argument.
+
+4.  If there are a manageable number of candidate models remaining (as in the example: 7), we can also compare these models in detail and use the functions of the respective package to do so. The models are available in the \@passed-models slot. For example, we could plot the respective person-item maps or look at the fit indices for each model and make a decision on this basis.
+
+## 6. Computation time and considerations for the sequence of tests
+
+Estimating the person parameters of Rasch models is computationally expensive, especially with an increasing number of model parameters. Despite the distribution of the calculations to (up to) all available CPU cores due to the parallelization used in the exhaustiveRasch package, the execution of the model tests including the verification of the applied criteria can require long computing times. This is particularly important for PCM models with many model parameters (number of items and response categories).
+
+The following therefore applies: Many cores (and a processor generation that is as up-to-date as possible) help a lot. Not only a higher number of physical cores is useful here, a higher number of virtual cores (threads) is also helpful. For analyses with a high number of item combinations (\>20 items) and more than four response categories, a calculation in a cloud computing environment may be useful.
+
+Since version 0.2.1, in addition to the CML estimation algorithms from the *eRm* package, the use of CML estimation algorithms from the *psychotools* package is also available and default since version 0.2.1. Since version 0.3.2 parameters calculations and model testing functions of the *pairwise* package also can be used.
+
+The choice of the respective package has a significant influence on the computation times. Compared to *eRM,* RM models are estimated with *pychotools* around 4x faster, and with *pairwise* around 5x faster. In our experience with PCM models, *psychotools* is around 7x faster than *eRm* on a CPU with 8 physical cores, and *pairwise* is 14 times faster. These values refer to the pure model estimation (no_test). Since submodels resulting from the split also have to be re-estimated in *test_mloef*, *test_L*R and *test_waldtest*, this difference also has an effect on these tests, albeit to a lesser extent. With *test_LR*, this does not apply to pairwise, which is actually significantly slower in this test. Pairwise requires the person parameters for the likelihood ratio test, which must first be calculated.
+
+However, when analyzing a large number of item combinations, some consideration should be given to a productive sequence of tests to be used before carrying out the analyses. The tests with the shortest runtime are those based exclusively on the item parameters and which do not require any estimation of the person parameters: *test_mloef*, *test_waldtest* and *test_LR*. However, the expected trade-off between runtime and reduction of the remaining item combinations after the test should be considered less than the pure runtime of a test. Depending on the characteristics of the selected item combinations and the strictness of the selection criteria (e.g. alpha level, Bonferroni correction, upper/lower bound of itemfit parameters) item combinations are much stricter. Reducing the remaining item combinations using tests with relatively short computation times should be the preferred strategy.  Before testing a large number of item combinations, it may be a good idea to first draw a random sample of, for example, 1,000 to 3,000 item combinations to check how selectively the intended tests reduce the remaining item combinations and to incorporate this into the considerations regarding the order of the tests.
+
+A test of the fit indices (test_itemfit) is probably desirable in every scenario. However, this test has a comparatively long runtime and should therefore be carried out at a later point in time, when the number of remaining item combinations has already been significantly reduced. The same applies to all other tests that rely on person parameters (*test_personsItems*, *test_respca*, *test_PSI*).
+
+Testing for differential item functioning using *test_DIFtree* can require a comparatively long runtime for polytomous items (PCM or RSM models). This also increases with the number of external variables to be tested (argument DIFvars) and if these are metrically scaled variables or categorical variables with many factors.
+
+In general, the individual tests for analyses with longer runtimes (PCM models with \>4 response categories and several 1,000 item combinations) should not be carried out in a single call of exhaustive_tests. If no item combinations remain after a test, there is no longer access to the item combinations that remained after the penultimate test. A workflow would be better in which only one test is carried out first (e.g. argument *tests="test_mloef"*). Then the *passed_exRA* object is passed in the *combos* argument for the second test. See the example with passed_ADL and passed_ADL2 in section 3 of this vignette.
+
+## References
+
+**Grebe C, Schürmann M, Latteck ÄD (2021).** Die Health Professionals Competence Scales (HePCoS) zur Kompetenzerfassung in den Gesundheitsfachberufen. Technical Report. Berichte aus Forschung und Lehre (48). Bielefeld, Fachhochschule Bielefeld. DOI: <http://dx.doi.org/10.13140/RG.2.2.13480.08967/1>
+
+***Grebe C (2013).*** "Pflegeaufwand und Personalbemessung in der stationären Langzeitpflege. Entwicklung eines empirischen Fallgruppensystems auf der Basis von Bewohnercharakteristika". Oral presentation at the 3-Länderkonferenz Pflege & Pflegewissenschaft, September 2013, Konstanz.
+
+**Heine JH & Tarnei C (2015).** Pairwise Rasch model item parameter recovery under sparse data conditions. Psychological Test and Asessment Modeling, 57(1), 3-36.
+
+***Katz S, Ford AB, Moskowitz RW, Jackson BA, Jaffe MW (1963).*** "Studies of illness in the aged: the index of ADL: a standardized measure of biological and psychosocial function". jama, 185(12), 914-919. <doi:10.1001/jama.1963.03060120024016>.
+
+***Komboz B, Zeileis A, Strobl C (2018).*** "Tree-Based Global Model Tests for Polytomous Rasch Models." Educational and Psychological Measurement, 78(1), 128--166. <doi:10.1177/0013164416664394>.
+
+***Linacre JM (2002).*** "What do infit and outfit, mean-square and standardized mean?" Rasch Measurement Transactions, 16 (2), 878.
+
+***Mahoney FI, Barthel DW (1965).*** "Functional evaluation: the Barthel index". Maryland state medical journal, 14(2), 61-65.
+
+***Mair P, Hatzinger R (2007).*** "Extended Rasch modeling: The eRm package for the application of IRT models in R." Journal of Statistical Software, 20. doi: 10.18637/jss.v020.i09.
+
+***Morris JN, Fries BE, Morris SA (1999).*** "Scaling ADLs within the MDS". The Journals of Gerontology: Series A, 54(11), M546-M553. <doi:10.1093/gerona/54.11.m546>
+
+***Strobl C, Kopf J, Zeileis A (2015).*** "Rasch Trees: A New Method for Detecting Differential Item Functioning in the Rasch Model." Psychometrika, 80(2), 289--316. <doi:10.1007/s11336-013-9388-3>.
+
+**Wijayanto F, Bucur IG, Groot P, Heskes T (2023)**. autoRasch: An R Package to Do Semi-Automated Rasch Analysis. *Applied Psychological Measurement*, *47*(1), 83-85.
+
+***Wright BD, Linacre JM, Gustafson JE, Martin-Löf P (1996)*** "Reasonable mean-square fit values". Rasch measurement transactions, 2, 370.
+
+***Zeileis A, Strobl C, Wickelmaier F, Komboz B, Kopf J, Schneider L, Debelak R (2023)***. "psychotools: Infrastructure for Psychometric Modeling". R package version 0.7-3, [https://CRAN.R-project.org/package=psychotools](https://cran.r-project.org/package=psychotools).

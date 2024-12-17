@@ -1,0 +1,59 @@
+all_rawscores <- function(items=NULL,
+                          dset=NULL,
+                          na.rm=TRUE,
+                          model=NULL,
+                          p.par=NULL,
+                          modelType=NULL,
+                          estimation_param=NULL){
+  #' checks if all possible raw scores occur in the data.
+  #' @param items a numeric vector containing the index numbers of the items in
+  #'  dset that are used to fit the model
+  #' @param dset a data.frame containing the data
+  #' @param na.rm a boolean value. If TRUE, all cases with any NA are removed
+  #'  (na.omit). If FALSE, only cases with full NA responses are removed
+  #' @param model on object of a fit Rasch model, estimated with the packages
+  #' 'eRm' (classes 'RM', 'PCM' or 'RSM'), 'psychotools' (classes raschmodel,
+  #' 'pcmodel' or 'rsmodel') or 'pairwise' (class 'pers'), matching the value of
+  #'  modelType. If 'model' is provided, this model is used. If NULL, a model is
+  #'  fit using 'dset' and 'items'.
+  #' @param p.par a person parameter object matching the class of 'model'. If
+  #'  NULL, the person parameters will be estimated.
+  #' @param modelType a character value defining the rasch model to fit.
+  #'  Possible values: "RM", "PCM", "RSM".
+  #' @param estimation_param options for parameter estimation using
+  #' \link{estimation_control}
+  #' @return if all possible raw scores occur in dset, a list containing
+  #'  3 elements is returned: the item combination that was tested, a list of
+  #'  the class the model was estimated with (depending on modelType and
+  #'  estimation_param$est) with the fit model and a list with a person
+  #'  parameter object (depending on estimation_param$est).  If at least one
+  #'  raw score does not occur in dset, NULL is returned.
+  #' @export
+  #' @keywords internal
+
+  # This function implements one of the tests that are executed via the 'tests'
+  # argument of the exhaustive_tests() function. It is an internal function, a
+  # call by the user is not indicated. It is nevertheless exported in order to
+  # work in parallelization. However, it is not included in the package
+  # documentation (roxygen2 keyword 'internal').
+
+
+  if (inherits(items, "list")){
+    model <- items[[2]]
+    p.par <- items[[3]]
+    items <- items[[1]]
+  }
+
+  ds_test <- dset[,items]
+  if (na.rm==TRUE){ds_test<- stats::na.omit(ds_test)}
+
+  min_cat <- min(apply(ds_test,2, function(x) min(x, na.rm=T)))
+  max_cat <- max(apply(ds_test,2, function(x) max(x, na.rm=T)))
+  no_cats <- (max_cat-min_cat)*length(ds_test)
+  poss_rawscores <- seq(min_cat*length(ds_test), max_cat*length(ds_test))
+  emp_rawscores <- as.numeric(names((table(rowSums(ds_test)))))
+  if (length(which(!poss_rawscores %in% emp_rawscores))==0){
+    return(list(items, model, p.par))
+  }
+
+}
